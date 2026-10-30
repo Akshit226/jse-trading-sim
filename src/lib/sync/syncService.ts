@@ -207,7 +207,7 @@ export async function joinPlayer(
 ): Promise<RoomState> {
   const upperCode = roomCode.toUpperCase();
 
-  if (typeof window !== "undefined" && !isFirebaseConfigured) {
+  if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/room", {
         method: "POST",
@@ -244,7 +244,7 @@ export async function submitOrder(
 ): Promise<{ success: boolean; error?: string; room?: RoomState }> {
   const upperCode = roomCode.toUpperCase();
 
-  if (typeof window !== "undefined" && !isFirebaseConfigured) {
+  if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/room", {
         method: "POST",
@@ -278,7 +278,7 @@ export async function triggerNewsEvent(
 ): Promise<RoomState> {
   const upperCode = roomCode.toUpperCase();
 
-  if (typeof window !== "undefined" && !isFirebaseConfigured) {
+  if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/room", {
         method: "POST",
@@ -309,7 +309,7 @@ export async function triggerNewsEvent(
 export async function advanceRound(roomCode: string): Promise<RoomState> {
   const upperCode = roomCode.toUpperCase();
 
-  if (typeof window !== "undefined" && !isFirebaseConfigured) {
+  if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/room", {
         method: "POST",
@@ -340,7 +340,7 @@ export async function advanceRound(roomCode: string): Promise<RoomState> {
 export async function spawnBots(roomCode: string, count: number = 30): Promise<RoomState> {
   const upperCode = roomCode.toUpperCase();
 
-  if (typeof window !== "undefined" && !isFirebaseConfigured) {
+  if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/room", {
         method: "POST",
@@ -374,7 +374,7 @@ export async function updateRoomStatus(
 ): Promise<RoomState> {
   const upperCode = roomCode.toUpperCase();
 
-  if (typeof window !== "undefined" && !isFirebaseConfigured) {
+  if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/room", {
         method: "POST",
@@ -412,7 +412,7 @@ export async function updateRoomStatus(
 export async function resetRoomState(roomCode: string): Promise<RoomState> {
   const upperCode = roomCode.toUpperCase();
 
-  if (typeof window !== "undefined" && !isFirebaseConfigured) {
+  if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/room", {
         method: "POST",
