@@ -5,12 +5,11 @@ import { RoomState } from "@/types/trading";
 import { sounds } from "@/lib/audio";
 import {
   Play,
-  Pause,
+  Square,
   SkipForward,
   RotateCcw,
   Users,
   BellRing,
-  Bot,
   Zap,
 } from "lucide-react";
 import {
@@ -35,29 +34,10 @@ export const RoundControl: React.FC<RoundControlProps> = ({
   onResetRoom,
 }) => {
   const [botsActive, setBotsActive] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(room.roundTimeRemaining);
 
   useEffect(() => {
     setBotsActive(isBotSimulationRunning());
   }, []);
-
-  // Timer countdown
-  useEffect(() => {
-    if (room.status !== "ACTIVE") return;
-
-    const interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          sounds.playBell();
-          onUpdateStatus("PAUSED");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [room.status, onUpdateStatus]);
 
   const toggleBots = () => {
     if (botsActive) {
@@ -69,118 +49,151 @@ export const RoundControl: React.FC<RoundControlProps> = ({
     }
   };
 
-  const formatTimer = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
   const handleStartRound = () => {
     sounds.playBell();
     onUpdateStatus("ACTIVE");
   };
 
-  const handlePauseRound = () => {
+  const handleStopRound = () => {
+    sounds.playBell();
     onUpdateStatus("PAUSED");
   };
 
+  const isMarketOpen = room.status === "ACTIVE";
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Round & Timer display */}
+        {/* Round & Status Display (No Timer) */}
         <div>
           <div className="flex items-center space-x-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Session Status:
+              Market Status:
             </span>
             <span
-              className={`text-xs px-2.5 py-0.5 rounded-full font-extrabold uppercase ${
-                room.status === "ACTIVE"
+              className={`text-xs px-3 py-1 rounded-full font-black uppercase tracking-wider flex items-center space-x-1.5 ${
+                isMarketOpen
                   ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse"
                   : room.status === "PAUSED"
                   ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
-                  : "bg-slate-800 text-slate-400"
+                  : "bg-slate-800 text-slate-400 border border-slate-700"
               }`}
             >
-              {room.status}
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isMarketOpen
+                    ? "bg-emerald-400"
+                    : room.status === "PAUSED"
+                    ? "bg-amber-400"
+                    : "bg-slate-500"
+                }`}
+              />
+              <span>
+                {isMarketOpen
+                  ? "Market Open • Trading Live"
+                  : room.status === "PAUSED"
+                  ? "Market Stopped • Round Paused"
+                  : "Pre-Open Lobby"}
+              </span>
             </span>
           </div>
 
-          <div className="flex items-baseline space-x-3 mt-1">
-            <h2 className="text-2xl font-black text-white">
+          <div className="mt-1.5">
+            <h2 className="text-2xl font-black text-white tracking-tight">
               Round {room.currentRound} of {room.totalRounds}
             </h2>
-            <div className="text-xl font-mono font-bold text-cyan-400">
-              ⏱ {formatTimer(timeRemaining)}
-            </div>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">
+              Teacher Manual Control • Click <span className="text-emerald-400 font-bold">Start</span> to open trading, <span className="text-rose-400 font-bold">Stop</span> to conclude the round.
+            </p>
           </div>
         </div>
 
-        {/* Primary Controls */}
-        <div className="flex flex-wrap items-center gap-2">
-          {room.status !== "ACTIVE" ? (
-            <button
-              onClick={handleStartRound}
-              className="flex items-center space-x-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg shadow-lg shadow-emerald-900/30 transition-all"
-            >
-              <Play className="w-4 h-4" />
-              <span>{room.status === "LOBBY" ? "Start Market" : "Resume Round"}</span>
-            </button>
-          ) : (
-            <button
-              onClick={handlePauseRound}
-              className="flex items-center space-x-1.5 px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg shadow-lg transition-all"
-            >
-              <Pause className="w-4 h-4" />
-              <span>Pause Market</span>
-            </button>
-          )}
-
+        {/* Primary Controls: START & STOP Buttons */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* START BUTTON */}
           <button
+            type="button"
+            onClick={handleStartRound}
+            disabled={isMarketOpen}
+            className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg transition-all ${
+              isMarketOpen
+                ? "bg-slate-800/60 text-slate-500 border border-slate-800 cursor-not-allowed opacity-50"
+                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/50 hover:scale-[1.02] cursor-pointer"
+            }`}
+          >
+            <Play className="w-4 h-4 fill-current" />
+            <span>{room.status === "LOBBY" ? "Start Market" : "Start Round"}</span>
+          </button>
+
+          {/* STOP BUTTON */}
+          <button
+            type="button"
+            onClick={handleStopRound}
+            disabled={!isMarketOpen}
+            className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg transition-all ${
+              !isMarketOpen
+                ? "bg-slate-800/60 text-slate-500 border border-slate-800 cursor-not-allowed opacity-50"
+                : "bg-rose-600 hover:bg-rose-500 text-white shadow-rose-950/50 hover:scale-[1.02] cursor-pointer animate-pulse"
+            }`}
+          >
+            <Square className="w-4 h-4 fill-current" />
+            <span>Stop Round</span>
+          </button>
+
+          {/* NEXT ROUND BUTTON */}
+          <button
+            type="button"
             onClick={() => {
               sounds.playBell();
               onAdvanceRound();
             }}
-            className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-lg border border-slate-700 transition-all"
+            disabled={room.currentRound >= room.totalRounds}
+            className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700 transition-all text-xs uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <SkipForward className="w-4 h-4" />
             <span>Next Round</span>
           </button>
 
+          {/* Bell Icon */}
           <button
+            type="button"
             onClick={() => sounds.playBell()}
-            title="Ring NYSE Bell"
-            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg border border-slate-700"
+            title="Ring Market Bell"
+            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl border border-slate-700 transition-all"
           >
             <BellRing className="w-4 h-4" />
           </button>
 
           {/* Bot simulator toggle */}
           <button
+            type="button"
             onClick={toggleBots}
-            className={`flex items-center space-x-1.5 px-3 py-2.5 rounded-lg font-bold text-xs border transition-all ${
+            className={`flex items-center space-x-1.5 px-3 py-2.5 rounded-xl font-bold text-xs border transition-all ${
               botsActive
                 ? "bg-purple-600 text-white border-purple-500 animate-pulse"
                 : "bg-slate-800 text-purple-300 border-purple-900/50 hover:bg-slate-700"
             }`}
           >
             <Zap className="w-3.5 h-3.5" />
-            <span>{botsActive ? "AI Traders: ACTIVE" : "AI Traders: OFF"}</span>
+            <span>{botsActive ? "AI Traders: ON" : "AI Traders: OFF"}</span>
           </button>
 
           {/* Spawn 30 AI Classmates */}
           <button
+            type="button"
             onClick={onSpawnBots}
-            className="flex items-center space-x-1.5 px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 text-xs font-semibold"
+            className="flex items-center space-x-1.5 px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 text-xs font-semibold"
           >
             <Users className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Spawn 30 Classmates</span>
+            <span>+30 Classmates</span>
           </button>
 
+          {/* Reset Room */}
           <button
+            type="button"
             onClick={onResetRoom}
             title="Reset Game"
-            className="p-2.5 bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 rounded-lg border border-slate-700 transition-all"
+            className="p-2.5 bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 rounded-xl border border-slate-700 transition-all"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
