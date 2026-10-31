@@ -3,6 +3,7 @@ import { Asset, AssetId, StudentDesk } from "@/types/trading";
 export const STARTING_CASH = 1000000; // ₹10,00,000 (₹10 Lakhs)
 export const DEFAULT_ROUND_DURATION = 240; // 4 minutes per round
 export const TOTAL_ROUNDS = 5;
+export const DEFAULT_TEACHER_PIN = process.env.NEXT_PUBLIC_TEACHER_PIN || "2026";
 
 /**
  * Formats a number to Indian Rupees with Indian comma separation

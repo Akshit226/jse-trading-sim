@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StudentDesk } from "@/types/trading";
-import { DESK_METADATA } from "@/lib/constants";
+import { DESK_METADATA, DEFAULT_TEACHER_PIN } from "@/lib/constants";
 import {
   TrendingUp,
   Presentation,
@@ -12,6 +12,10 @@ import {
   Sparkles,
   ArrowRight,
   Flame,
+  Lock,
+  KeyRound,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -19,6 +23,12 @@ export default function HomePage() {
   const [studentName, setStudentName] = useState("");
   const [roomCode, setRoomCode] = useState("WALLST");
   const [selectedDesk, setSelectedDesk] = useState<StudentDesk>("tech_analyst");
+
+  // Faculty Gate state
+  const [showFacultyModal, setShowFacultyModal] = useState(false);
+  const [facultyPin, setFacultyPin] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(false);
 
   const handleJoinStudent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +41,17 @@ export default function HomePage() {
     });
 
     router.push(`/play/${trimmedCode}?${query.toString()}`);
+  };
+
+  const handleVerifyFacultyPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (facultyPin.trim() === DEFAULT_TEACHER_PIN) {
+      sessionStorage.setItem("jse_teacher_authorized", "true");
+      setIsUnlocked(true);
+      setPinError(false);
+    } else {
+      setPinError(true);
+    }
   };
 
   const handleOpenHost = () => {
@@ -147,30 +168,110 @@ export default function HomePage() {
           </form>
         </div>
 
-        {/* Teacher & Projector Shortcuts */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Faculty & Presenter Discreet Access */}
+        <div className="text-center pt-2">
           <button
-            onClick={handleOpenHost}
-            className="flex items-center justify-center space-x-2 py-2.5 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 transition-all"
+            type="button"
+            onClick={() => {
+              setShowFacultyModal(true);
+              setPinError(false);
+              setFacultyPin("");
+            }}
+            className="inline-flex items-center space-x-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors py-1 px-3 rounded-lg hover:bg-slate-900/60"
           >
-            <ShieldCheck className="w-4 h-4 text-purple-400" />
-            <span>Teacher Host Controls</span>
-          </button>
-
-          <button
-            onClick={handleOpenProjector}
-            className="flex items-center justify-center space-x-2 py-2.5 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 transition-all"
-          >
-            <Presentation className="w-4 h-4 text-amber-400" />
-            <span>Projector Display</span>
+            <Lock className="w-3.5 h-3.5 text-amber-500/70" />
+            <span>Faculty & Presenter Access</span>
           </button>
         </div>
 
         {/* Classroom Highlights footer */}
-        <div className="mt-8 text-center text-xs text-slate-500">
-          <p>Designed for 30–35 students • Vercel-ready • Real-time sentiment shocks</p>
+        <div className="mt-6 text-center text-[11px] text-slate-600">
+          <p>Designed for 30–35 students • Jain University Stock Exchange (JSE)</p>
         </div>
       </div>
+
+      {/* Faculty Gate Modal */}
+      {showFacultyModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-sm w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative">
+            <button
+              onClick={() => setShowFacultyModal(false)}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-full bg-slate-800"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="text-center mb-5">
+              <div className="inline-flex p-2.5 bg-purple-950/80 border border-purple-500/30 rounded-2xl text-purple-400 mb-2">
+                <Lock className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-black text-white">Faculty Authentication</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Enter teacher PIN to access host controls or classroom projector.
+              </p>
+            </div>
+
+            {!isUnlocked ? (
+              <form onSubmit={handleVerifyFacultyPin} className="space-y-4">
+                <div>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      autoFocus
+                      required
+                      placeholder="Enter 4-digit PIN"
+                      value={facultyPin}
+                      onChange={(e) => {
+                        setFacultyPin(e.target.value);
+                        if (pinError) setPinError(false);
+                      }}
+                      className={`w-full bg-slate-950 border ${
+                        pinError ? "border-rose-500 text-rose-300" : "border-slate-700 text-white"
+                      } rounded-xl px-4 py-2.5 text-center text-base font-mono tracking-[0.3em] font-black focus:outline-none focus:border-cyan-400`}
+                    />
+                    <KeyRound className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {pinError && (
+                    <div className="flex items-center space-x-1.5 text-rose-400 text-xs font-bold mt-2 justify-center">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Invalid PIN. Access denied.</span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all"
+                >
+                  Verify PIN
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-center text-xs text-emerald-300 font-bold">
+                  ✓ Faculty PIN Verified
+                </div>
+
+                <button
+                  onClick={handleOpenHost}
+                  className="w-full flex items-center justify-center space-x-2 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg transition-all"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Open Teacher Command Center</span>
+                </button>
+
+                <button
+                  onClick={handleOpenProjector}
+                  className="w-full flex items-center justify-center space-x-2 py-3 bg-amber-600 hover:bg-amber-500 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider shadow-lg transition-all"
+                >
+                  <Presentation className="w-4 h-4" />
+                  <span>Launch Classroom Projector</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
