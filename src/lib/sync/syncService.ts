@@ -18,6 +18,25 @@ const inMemoryRooms = new Map<string, RoomState>();
 type RoomListener = (room: RoomState) => void;
 const inPageListeners = new Map<string, Set<RoomListener>>();
 
+export function normalizeRoomState(raw: any): RoomState {
+  if (!raw) return raw as RoomState;
+  return {
+    ...raw,
+    players: raw.players || {},
+    recentTrades: Array.isArray(raw.recentTrades)
+      ? raw.recentTrades
+      : raw.recentTrades
+      ? Object.values(raw.recentTrades)
+      : [],
+    newsHistory: Array.isArray(raw.newsHistory)
+      ? raw.newsHistory
+      : raw.newsHistory
+      ? Object.values(raw.newsHistory)
+      : [],
+    assets: raw.assets || {},
+  };
+}
+
 export function createInitialRoom(code: string): RoomState {
   return {
     code: code.toUpperCase(),
@@ -45,10 +64,12 @@ export async function getRoomState(code: string): Promise<RoomState | null> {
       const roomRef = ref(database, `rooms/${upperCode}`);
       const snapshot = await get(roomRef);
       if (snapshot.exists()) {
-        return snapshot.val() as RoomState;
+        const norm = normalizeRoomState(snapshot.val());
+        inMemoryRooms.set(upperCode, norm);
+        return norm;
       }
     } catch (err) {
-      console.error("Firebase getRoomState error:", err);
+      // Permission denied or network issue -> fallback to server API
     }
   }
 
@@ -59,8 +80,9 @@ export async function getRoomState(code: string): Promise<RoomState | null> {
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.room) {
-          inMemoryRooms.set(upperCode, json.room);
-          return json.room as RoomState;
+          const norm = normalizeRoomState(json.room);
+          inMemoryRooms.set(upperCode, norm);
+          return norm;
         }
       }
     } catch {}
@@ -68,14 +90,16 @@ export async function getRoomState(code: string): Promise<RoomState | null> {
     const raw = localStorage.getItem(STORAGE_PREFIX + upperCode);
     if (raw) {
       try {
-        return JSON.parse(raw) as RoomState;
+        const parsed = JSON.parse(raw);
+        return normalizeRoomState(parsed);
       } catch {}
     }
   } else {
     // Pure Node.js environment
     try {
       const { getServerRoom } = await import("../server/roomStore");
-      return getServerRoom(upperCode);
+      const serverRoom = getServerRoom(upperCode);
+      return serverRoom ? normalizeRoomState(serverRoom) : null;
     } catch {}
   }
 
@@ -87,14 +111,15 @@ export async function getRoomState(code: string): Promise<RoomState | null> {
  */
 export async function saveRoomState(room: RoomState): Promise<void> {
   const upperCode = room.code.toUpperCase();
-  inMemoryRooms.set(upperCode, room);
+  const normalized = normalizeRoomState(room);
+  inMemoryRooms.set(upperCode, normalized);
 
   // Notify local in-page subscribers immediately
   const listeners = inPageListeners.get(upperCode);
   if (listeners) {
     listeners.forEach((fn) => {
       try {
-        fn(room);
+        fn(normalized);
       } catch (err) {
         console.error("Local listener error:", err);
       }
@@ -105,18 +130,18 @@ export async function saveRoomState(room: RoomState): Promise<void> {
   if (isFirebaseConfigured && database) {
     try {
       const roomRef = ref(database, `rooms/${upperCode}`);
-      await set(roomRef, room);
+      await set(roomRef, normalized);
     } catch (err) {
-      console.error("Firebase saveRoomState error:", err);
+      // Firebase write may be restricted by rules; local & server API will take over
     }
   }
 
   // 2. BroadcastChannel & LocalStorage sync
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem(STORAGE_PREFIX + upperCode, JSON.stringify(room));
+      localStorage.setItem(STORAGE_PREFIX + upperCode, JSON.stringify(normalized));
       const channel = new BroadcastChannel("trading_sim_" + upperCode);
-      channel.postMessage({ type: "ROOM_UPDATED", room });
+      channel.postMessage({ type: "ROOM_UPDATED", room: normalized });
       setTimeout(() => channel.close(), 100);
     } catch (err) {
       console.warn("Storage/BroadcastChannel error:", err);
@@ -133,68 +158,88 @@ export function subscribeToRoom(
 ): () => void {
   const upperCode = code.toUpperCase();
 
+  const safeOnUpdate = (rawRoom: RoomState) => {
+    if (!rawRoom) return;
+    const clean = normalizeRoomState(rawRoom);
+    onUpdate(clean);
+  };
+
   // Register in-page listener
   if (!inPageListeners.has(upperCode)) {
     inPageListeners.set(upperCode, new Set());
   }
-  inPageListeners.get(upperCode)!.add(onUpdate);
+  inPageListeners.get(upperCode)!.add(safeOnUpdate);
+
+  let unsubscribeFirebase: (() => void) | null = null;
 
   if (isFirebaseConfigured && database) {
-    const roomRef = ref(database, `rooms/${upperCode}`);
-    const unsubscribeFirebase = onValue(roomRef, (snapshot) => {
-      if (snapshot.exists()) {
-        onUpdate(snapshot.val() as RoomState);
-      }
-    });
-    return () => {
-      inPageListeners.get(upperCode)?.delete(onUpdate);
-      unsubscribeFirebase();
-    };
+    try {
+      const roomRef = ref(database, `rooms/${upperCode}`);
+      unsubscribeFirebase = onValue(
+        roomRef,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            safeOnUpdate(snapshot.val() as RoomState);
+          }
+        },
+        () => {
+          // Gracefully suppress permission denied errors so HTTP polling handles updates
+        }
+      );
+    } catch {
+      // Firebase unavailable
+    }
   }
+
+  let pollInterval: NodeJS.Timeout | null = null;
+  let channel: BroadcastChannel | null = null;
 
   if (typeof window !== "undefined") {
     // 1. Initial load from API
     getRoomState(upperCode).then((existing) => {
-      if (existing) onUpdate(existing);
+      if (existing) safeOnUpdate(existing);
     });
 
-    // 2. Multi-device polling interval (enables phones to sync with laptop projector over Wi-Fi!)
-    const pollInterval = setInterval(async () => {
+    // 2. Multi-device continuous polling (acts as primary sync or seamless fallback)
+    pollInterval = setInterval(async () => {
       try {
         const res = await fetch(`/api/room?code=${upperCode}`);
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.room) {
-            onUpdate(json.room);
+            safeOnUpdate(json.room);
           }
         }
       } catch {}
     }, 1200);
 
     // 3. BroadcastChannel for same-browser instant sync
-    const channel = new BroadcastChannel("trading_sim_" + upperCode);
-    const handleMessage = (e: MessageEvent) => {
-      if (e.data?.type === "ROOM_UPDATED" && e.data?.room) {
-        onUpdate(e.data.room);
-      }
-    };
-    channel.addEventListener("message", handleMessage);
+    try {
+      channel = new BroadcastChannel("trading_sim_" + upperCode);
+      const handleMessage = (e: MessageEvent) => {
+        if (e.data?.type === "ROOM_UPDATED" && e.data?.room) {
+          safeOnUpdate(e.data.room);
+        }
+      };
+      channel.addEventListener("message", handleMessage);
+    } catch {}
 
     return () => {
-      inPageListeners.get(upperCode)?.delete(onUpdate);
-      clearInterval(pollInterval);
-      channel.removeEventListener("message", handleMessage);
-      channel.close();
+      inPageListeners.get(upperCode)?.delete(safeOnUpdate);
+      if (unsubscribeFirebase) unsubscribeFirebase();
+      if (pollInterval) clearInterval(pollInterval);
+      if (channel) channel.close();
     };
   }
 
   // Fallback for SSR
   getRoomState(upperCode).then((existing) => {
-    if (existing) onUpdate(existing);
+    if (existing) safeOnUpdate(existing);
   });
 
   return () => {
-    inPageListeners.get(upperCode)?.delete(onUpdate);
+    inPageListeners.get(upperCode)?.delete(safeOnUpdate);
+    if (unsubscribeFirebase) unsubscribeFirebase();
   };
 }
 

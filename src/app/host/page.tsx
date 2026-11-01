@@ -119,7 +119,7 @@ export default function HostDashboardPage() {
 
   const handleExportCSV = () => {
     if (!room) return;
-    const playersList = Object.values(room.players).sort(
+    const playersList = Object.values(room.players || {}).sort(
       (a, b) => b.totalNetWorth - a.totalNetWorth
     );
 
@@ -243,7 +243,7 @@ export default function HostDashboardPage() {
     );
   }
 
-  const studentCount = Object.keys(room.players).length;
+  const studentCount = Object.keys(room.players || {}).length;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 space-y-6">
@@ -334,7 +334,7 @@ export default function HostDashboardPage() {
           <div className="glass-card rounded-2xl p-4 flex items-center justify-between shadow-lg">
             <div>
               <span className="text-xs text-slate-400 block uppercase font-mono">Total Executions</span>
-              <span className="text-2xl font-black text-cyan-400">{room.recentTrades.length}</span>
+              <span className="text-2xl font-black text-cyan-400">{(room.recentTrades?.length || 0)}</span>
             </div>
             <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
               <Users className="w-5 h-5" />

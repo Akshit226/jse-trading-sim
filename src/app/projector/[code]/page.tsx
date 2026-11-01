@@ -85,7 +85,7 @@ export default function ProjectorDisplayPage() {
 
   const top3 = useMemo(() => {
     if (!room) return [];
-    return Object.values(room.players)
+    return Object.values(room.players || {})
       .sort((a, b) => b.totalNetWorth - a.totalNetWorth)
       .slice(0, 3);
   }, [room?.players]);
@@ -99,7 +99,7 @@ export default function ProjectorDisplayPage() {
     );
   }
 
-  const selectedAsset = room.assets[selectedAssetId];
+  const selectedAsset = room.assets?.[selectedAssetId] || Object.values(room.assets || {})[0];
 
   return (
     <div className="min-h-screen bg-[#070B12] text-slate-100 p-4 sm:p-6 flex flex-col justify-between overflow-x-hidden font-sans">
@@ -281,10 +281,10 @@ export default function ProjectorDisplayPage() {
               </div>
 
               <div className="flex space-x-3 overflow-x-auto pb-1 text-xs font-mono">
-                {room.recentTrades.length === 0 ? (
+                {(room.recentTrades?.length || 0) === 0 ? (
                   <span className="text-slate-500 italic py-1">Waiting for student orders...</span>
                 ) : (
-                  room.recentTrades.slice(0, 10).map((trade) => {
+                  (room.recentTrades || []).slice(0, 10).map((trade) => {
                     const isBuy = trade.side === "BUY";
                     return (
                       <div

@@ -16,7 +16,7 @@ export const LiveLeaderboard: React.FC<LiveLeaderboardProps> = ({
   currentPlayerId,
   maxDisplay = 10,
 }) => {
-  const sortedPlayers = Object.values(players)
+  const sortedPlayers = Object.values(players || {})
     .sort((a, b) => b.totalNetWorth - a.totalNetWorth)
     .slice(0, maxDisplay);
 

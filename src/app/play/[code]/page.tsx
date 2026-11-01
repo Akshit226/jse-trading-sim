@@ -166,7 +166,7 @@ function PlayRoomContent() {
       returnPercent: 0,
       totalTrades: 0,
       realizedPnL: 0,
-      rank: Object.keys(room.players).length + 1,
+      rank: Object.keys(room.players || {}).length + 1,
       lastActive: Date.now(),
     };
   }, [room, playerId]);
@@ -212,9 +212,9 @@ function PlayRoomContent() {
     );
   }
 
-  const selectedAsset = room.assets[selectedAssetId];
+  const selectedAsset = room.assets?.[selectedAssetId] || Object.values(room.assets || {})[0];
   const deskInfo = DESK_METADATA[currentPlayer.desk];
-  const holding = currentPlayer.shares[selectedAssetId] || 0;
+  const holding = (selectedAsset && currentPlayer.shares[selectedAsset.id]) || 0;
   const isMarketActive = room.status === "ACTIVE";
   const mobileOrderEstimate = Number((mobileLot * (selectedAsset?.currentPrice || 0)).toFixed(2));
 
@@ -580,10 +580,10 @@ function PlayRoomContent() {
             </div>
 
             <div className="mt-2.5 flex-1 overflow-y-auto space-y-1.5 pr-1 text-xs font-mono">
-              {room.recentTrades.length === 0 ? (
+              {(room.recentTrades?.length || 0) === 0 ? (
                 <div className="text-slate-500 text-xs italic py-4 text-center">Waiting for market orders...</div>
               ) : (
-                room.recentTrades.slice(0, 10).map((t) => (
+                (room.recentTrades || []).slice(0, 10).map((t) => (
                   <div
                     key={t.id}
                     className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center justify-between"

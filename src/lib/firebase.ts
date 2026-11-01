@@ -7,7 +7,7 @@ const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || (isEmulator ? "
 const defaultCloudDbUrl = projectId ? `https://${projectId}-default-rtdb.firebaseio.com` : "";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || (isEmulator ? "demo-api-key" : ""),
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || (isEmulator ? "demo-api-key" : "AIzaSyDwVMEaNdxgjzgCDZn2GtC6I9Y8upJlGO4"),
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || (isEmulator ? "demo-jse-trading.firebaseapp.com" : `${projectId}.firebaseapp.com`),
   databaseURL:
     process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL ||
@@ -16,8 +16,8 @@ const firebaseConfig = {
       : defaultCloudDbUrl),
   projectId,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${projectId}.firebasestorage.app`,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || (isEmulator ? "demo-app-id" : ""),
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "524553542072",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || (isEmulator ? "demo-app-id" : "1:524553542072:web:51ac3afb0ec3849ea2574d"),
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-FZM9V9EJLY",
 };
 
