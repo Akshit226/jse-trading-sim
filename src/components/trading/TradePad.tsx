@@ -85,10 +85,10 @@ export const TradePad: React.FC<TradePadProps> = ({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl">
+    <div className="glass-card rounded-2xl p-4 sm:p-5 shadow-2xl">
       {/* Confidential Intel Banner for Desk */}
       {activeWhisper && (
-        <div className="mb-4 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 border border-amber-500/60 rounded-xl p-3.5 text-amber-200 text-xs flex items-start space-x-2.5 shadow-lg shadow-amber-950/40 animate-pulse">
+        <div className="mb-4 bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-transparent border border-amber-500/40 rounded-xl p-3.5 text-amber-200 text-xs flex items-start space-x-2.5 shadow-lg shadow-amber-950/40 animate-pulse">
           <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <div>
             <div className="font-extrabold text-amber-300 uppercase tracking-wider text-[11px]">
@@ -104,13 +104,13 @@ export const TradePad: React.FC<TradePadProps> = ({
         <div
           className={`mb-4 rounded-xl p-3 text-xs flex items-center space-x-2.5 border ${
             room.status === "LOBBY"
-              ? "bg-cyan-950/60 border-cyan-500/50 text-cyan-200"
+              ? "bg-cyan-950/60 border-cyan-500/40 text-cyan-200"
               : room.status === "PAUSED"
-              ? "bg-amber-950/60 border-amber-500/50 text-amber-200"
+              ? "bg-amber-950/60 border-amber-500/40 text-amber-200"
               : "bg-slate-800/80 border-slate-700 text-slate-300"
           }`}
         >
-          <Clock className="w-4 h-4 shrink-0" />
+          <Clock className="w-4 h-4 shrink-0 text-cyan-400" />
           <div>
             <span className="font-extrabold uppercase">
               {room.status === "LOBBY"
@@ -138,7 +138,7 @@ export const TradePad: React.FC<TradePadProps> = ({
             <Layers className="w-3.5 h-3.5 text-cyan-400" />
             <span>Select Indian Stock</span>
           </span>
-          <span className="text-[11px] font-mono text-slate-500">
+          <span className="text-[11px] font-mono text-cyan-400 font-semibold">
             {Object.keys(room.assets).length} Equities Available
           </span>
         </div>
@@ -154,10 +154,10 @@ export const TradePad: React.FC<TradePadProps> = ({
               <button
                 key={aid}
                 onClick={() => handleSelect(aid)}
-                className={`py-2 px-2 rounded-xl text-left transition-all border ${
+                className={`py-2 px-2.5 rounded-xl text-left transition-all border ${
                   isSelected
-                    ? "bg-slate-800 border-cyan-400 shadow-lg shadow-cyan-950/50"
-                    : "bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60"
+                    ? "bg-slate-800/90 border-cyan-400 shadow-md shadow-cyan-950/60 ring-1 ring-cyan-400/50"
+                    : "bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -182,7 +182,7 @@ export const TradePad: React.FC<TradePadProps> = ({
 
       {/* Selected Stock Banner & Overview */}
       {asset && (
-        <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-3 mb-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5 mb-4 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-sm font-extrabold text-white">{asset.name}</span>
@@ -190,14 +190,14 @@ export const TradePad: React.FC<TradePadProps> = ({
                 {asset.category}
               </span>
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">
-              Position: <span className="font-bold text-white font-mono">{holding} shares</span> (
+            <div className="text-[11px] text-slate-400 mt-0.5 font-mono">
+              Position: <span className="font-bold text-white">{holding} shares</span> (
               {formatINR(holding * asset.currentPrice)})
             </div>
           </div>
 
           <div className="text-right">
-            <div className="text-slate-400">Available Liquid Cash:</div>
+            <div className="text-slate-400 text-[11px]">Free Buying Power:</div>
             <div className="text-sm font-black text-emerald-400 font-mono">
               {formatINR(player.cash)}
             </div>
@@ -212,7 +212,7 @@ export const TradePad: React.FC<TradePadProps> = ({
       <div className="mb-4">
         <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
           <span>Order Quantity (Shares)</span>
-          <span className="text-cyan-400 font-mono">
+          <span className="text-cyan-300 font-mono font-bold">
             Est. Total: {formatINR(estimatedTotal)}
           </span>
         </div>
@@ -232,46 +232,46 @@ export const TradePad: React.FC<TradePadProps> = ({
         <div className="grid grid-cols-7 gap-1.5 text-xs font-semibold">
           <button
             onClick={() => setQuantity(2)}
-            className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-all"
+            className="py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-all font-mono"
           >
             2
           </button>
           <button
             onClick={() => setQuantity(5)}
-            className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-all"
+            className="py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-all font-mono"
           >
             5
           </button>
           <button
             onClick={() => setQuantity(10)}
-            className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-all"
+            className="py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-all font-mono"
           >
             10
           </button>
           <button
             onClick={() => setQuantity(25)}
-            className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-all"
+            className="py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-all font-mono"
           >
             25
           </button>
           <button
             onClick={() => setQuantity(Math.max(1, maxBuyAffordable))}
             disabled={maxBuyAffordable <= 0}
-            className="py-1.5 bg-emerald-950/70 hover:bg-emerald-900/70 text-emerald-400 border border-emerald-800/40 rounded-lg disabled:opacity-30 transition-all font-bold"
+            className="py-1.5 bg-emerald-950/70 hover:bg-emerald-900/70 text-emerald-300 border border-emerald-500/30 rounded-lg disabled:opacity-30 transition-all font-bold"
           >
             Max
           </button>
           <button
             onClick={() => setQuantity(Math.max(1, Math.floor(holding / 2)))}
             disabled={holding <= 0}
-            className="py-1.5 bg-rose-950/70 hover:bg-rose-900/70 text-rose-300 border border-rose-800/40 rounded-lg disabled:opacity-30 transition-all font-bold"
+            className="py-1.5 bg-rose-950/70 hover:bg-rose-900/70 text-rose-300 border border-rose-500/30 rounded-lg disabled:opacity-30 transition-all font-bold"
           >
             50%
           </button>
           <button
             onClick={() => setQuantity(Math.max(1, holding))}
             disabled={holding <= 0}
-            className="py-1.5 bg-rose-950/70 hover:bg-rose-900/70 text-rose-300 border border-rose-800/40 rounded-lg disabled:opacity-30 transition-all font-bold"
+            className="py-1.5 bg-rose-950/70 hover:bg-rose-900/70 text-rose-300 border border-rose-500/30 rounded-lg disabled:opacity-30 transition-all font-bold"
           >
             All
           </button>
@@ -291,7 +291,7 @@ export const TradePad: React.FC<TradePadProps> = ({
         <button
           onClick={() => handleExecute("BUY")}
           disabled={loading || maxBuyAffordable <= 0 || !isMarketActive}
-          className="flex items-center justify-center space-x-2 py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-98 disabled:opacity-30 disabled:pointer-events-none rounded-xl text-white font-black text-sm sm:text-base shadow-xl shadow-emerald-950/40 transition-all"
+          className="flex items-center justify-center space-x-2 py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 disabled:opacity-30 disabled:pointer-events-none rounded-xl text-white font-black text-sm sm:text-base shadow-lg shadow-emerald-950/50 transition-all"
         >
           <ArrowUpRight className="w-5 h-5" />
           <span>BUY {selectedAssetId}</span>
@@ -300,7 +300,7 @@ export const TradePad: React.FC<TradePadProps> = ({
         <button
           onClick={() => handleExecute("SELL")}
           disabled={loading || holding <= 0 || !isMarketActive}
-          className="flex items-center justify-center space-x-2 py-3.5 px-4 bg-rose-600 hover:bg-rose-500 active:scale-98 disabled:opacity-30 disabled:pointer-events-none rounded-xl text-white font-black text-sm sm:text-base shadow-xl shadow-rose-950/40 transition-all"
+          className="flex items-center justify-center space-x-2 py-3.5 px-4 bg-rose-600 hover:bg-rose-500 active:scale-95 disabled:opacity-30 disabled:pointer-events-none rounded-xl text-white font-black text-sm sm:text-base shadow-lg shadow-rose-950/50 transition-all"
         >
           <ArrowDownRight className="w-5 h-5" />
           <span>SELL {selectedAssetId}</span>

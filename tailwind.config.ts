@@ -9,15 +9,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        jse: {
+          bg: "#0A0E17",
+          surface: "#111726",
+          surfaceAlt: "#161F33",
+          card: "rgba(18, 26, 44, 0.75)",
+          border: "#1E293B",
+          borderLight: "rgba(255, 255, 255, 0.08)",
+          cyan: "#00F0FF",
+          emerald: "#10B981",
+          rose: "#F43F5E",
+          amber: "#F59E0B",
+          indigo: "#6366F1",
+        },
         trading: {
           green: "#10b981",
           greenDark: "#059669",
           red: "#ef4444",
           redDark: "#dc2626",
-          darkBg: "#0f172a",
-          cardBg: "#1e293b",
-          border: "#334155",
-          accent: "#38bdf8",
+          darkBg: "#070B12",
+          cardBg: "#111726",
+          border: "#1E293B",
+          accent: "#00F0FF",
         },
       },
       animation: {

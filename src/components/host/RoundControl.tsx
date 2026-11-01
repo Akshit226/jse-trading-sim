@@ -62,16 +62,16 @@ export const RoundControl: React.FC<RoundControlProps> = ({
   const isMarketOpen = room.status === "ACTIVE";
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+    <div className="glass-card rounded-2xl p-5 shadow-2xl">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Round & Status Display (No Timer) */}
+        {/* Round & Status Display with Visual Dots */}
         <div>
           <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Market Status:
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
+              Simulation Control:
             </span>
             <span
-              className={`text-xs px-3 py-1 rounded-full font-black uppercase tracking-wider flex items-center space-x-1.5 ${
+              className={`text-xs px-3 py-0.5 rounded-full font-black uppercase tracking-wider flex items-center space-x-1.5 ${
                 isMarketOpen
                   ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse"
                   : room.status === "PAUSED"
@@ -98,14 +98,31 @@ export const RoundControl: React.FC<RoundControlProps> = ({
             </span>
           </div>
 
-          <div className="mt-1.5">
-            <h2 className="text-2xl font-black text-white tracking-tight">
+          <div className="mt-1.5 flex items-center gap-3">
+            <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
               Round {room.currentRound} of {room.totalRounds}
+              {/* Visual Round Dots from JSE Suite */}
+              <span className="flex gap-1.5 ml-2">
+                {Array.from({ length: room.totalRounds }).map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`h-2.5 w-2.5 rounded-full transition-all ${
+                      idx + 1 < room.currentRound
+                        ? "bg-emerald-400"
+                        : idx + 1 === room.currentRound
+                        ? isMarketOpen
+                          ? "bg-emerald-400 animate-pulse ring-2 ring-emerald-400/50"
+                          : "bg-amber-400"
+                        : "bg-slate-700"
+                    }`}
+                  />
+                ))}
+              </span>
             </h2>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">
-              Teacher Manual Control • Click <span className="text-emerald-400 font-bold">Start</span> to open trading, <span className="text-rose-400 font-bold">Stop</span> to conclude the round.
-            </p>
           </div>
+          <p className="text-xs text-slate-400 font-medium mt-0.5">
+            Manual Facilitator Control • Click <span className="text-emerald-400 font-bold">Start Round</span> to open order matching, <span className="text-rose-400 font-bold">Stop Round</span> to conclude trading.
+          </p>
         </div>
 
         {/* Primary Controls: START & STOP Buttons */}
@@ -170,7 +187,7 @@ export const RoundControl: React.FC<RoundControlProps> = ({
             onClick={toggleBots}
             className={`flex items-center space-x-1.5 px-3 py-2.5 rounded-xl font-bold text-xs border transition-all ${
               botsActive
-                ? "bg-purple-600 text-white border-purple-500 animate-pulse"
+                ? "bg-purple-600 text-white border-purple-500 animate-pulse shadow-md shadow-purple-950/50"
                 : "bg-slate-800 text-purple-300 border-purple-900/50 hover:bg-slate-700"
             }`}
           >
@@ -182,7 +199,7 @@ export const RoundControl: React.FC<RoundControlProps> = ({
           <button
             type="button"
             onClick={onSpawnBots}
-            className="flex items-center space-x-1.5 px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 text-xs font-semibold"
+            className="flex items-center space-x-1.5 px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 text-xs font-semibold transition-all"
           >
             <Users className="w-3.5 h-3.5 text-cyan-400" />
             <span>+30 Classmates</span>

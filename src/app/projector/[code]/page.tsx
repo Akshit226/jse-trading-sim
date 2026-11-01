@@ -102,9 +102,9 @@ export default function ProjectorDisplayPage() {
   const selectedAsset = room.assets[selectedAssetId];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 flex flex-col justify-between overflow-x-hidden">
-      {/* Top Banner: Market Status, Timer, QR Code */}
-      <header className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-4 mb-4">
+    <div className="min-h-screen bg-[#070B12] text-slate-100 p-4 sm:p-6 flex flex-col justify-between overflow-x-hidden font-sans">
+      {/* Top Banner: Market Status, QR Code, Simulation Info */}
+      <header className="glass-card rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-4 mb-4">
         <div className="flex items-center space-x-3.5">
           <div className="p-2 bg-white rounded-xl shadow-lg border border-slate-700 shrink-0">
             <img
@@ -125,71 +125,38 @@ export default function ProjectorDisplayPage() {
             <p className="text-xs text-slate-400 font-medium mt-0.5">
               Round {room.currentRound} of {room.totalRounds} •{" "}
               <span
-                className={`font-extrabold uppercase ${
+                className={`font-black uppercase tracking-wider ${
                   room.status === "ACTIVE"
-                    ? "text-emerald-400"
+                    ? "text-emerald-400 animate-pulse"
                     : room.status === "PAUSED"
                     ? "text-amber-400"
                     : "text-slate-400"
                 }`}
               >
-                {room.status}
+                ● {room.status === "ACTIVE" ? "MARKET OPEN (TRADING LIVE)" : room.status === "PAUSED" ? "MARKET PAUSED" : "PRE-OPEN LOBBY"}
               </span>{" "}
               • Previous Close Opening Rule Active
             </p>
           </div>
         </div>
 
-        {/* Assets Quick Bar */}
-        <div className="hidden xl:flex items-center space-x-1.5 overflow-x-auto">
-          {(Object.keys(room.assets) as AssetId[]).map((aid) => {
-            const a = room.assets[aid];
-            const isPos = a.changePercent >= 0;
-            const isSelected = selectedAssetId === aid;
-
-            return (
-              <button
-                key={aid}
-                onClick={() => setSelectedAssetId(aid)}
-                className={`py-1 px-2.5 rounded-xl border text-left transition-all ${
-                  isSelected
-                    ? "bg-slate-800 border-cyan-400 shadow-md"
-                    : "bg-slate-950 border-slate-800 hover:border-slate-700"
-                }`}
-              >
-                <div className="text-[10px] font-black text-white">{aid}</div>
-                <div className="text-[11px] font-mono font-bold text-slate-200">
-                  {formatINR(a.currentPrice)}
-                </div>
-                <div
-                  className={`text-[9px] font-mono font-bold ${
-                    isPos ? "text-emerald-400" : "text-rose-400"
-                  }`}
-                >
-                  {isPos ? "+" : ""}
-                  {a.changePercent.toFixed(1)}%
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
         {/* QR Code and Join URL */}
-        <div className="flex items-center space-x-3 bg-slate-950 border border-slate-800 px-3.5 py-2 rounded-xl">
-          <div className="bg-white p-1 rounded-md">
-            <QRCodeSVG value={joinUrl} size={48} />
+        <div className="flex items-center space-x-3.5 bg-slate-950/90 border border-slate-800 px-4 py-2.5 rounded-2xl shadow-lg neon-glow-cyan">
+          <div className="bg-white p-1 rounded-lg shrink-0">
+            <QRCodeSVG value={joinUrl} size={50} />
           </div>
           <div className="text-left">
-            <div className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400">
+            <div className="text-[10px] font-black uppercase tracking-wider text-amber-400">
               Scan Phone to Trade
             </div>
             <div className="text-xs font-black text-white font-mono">{room.code}</div>
+            <div className="text-[10px] text-slate-400 font-mono truncate max-w-[140px]">{originUrl}</div>
           </div>
 
           <button
             onClick={toggleSound}
             title="Toggle Audio & AI Voice Anchor"
-            className="p-2 ml-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
+            className="p-2 ml-1 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white transition-all"
           >
             {soundEnabled ? (
               <Volume2 className="w-4 h-4 text-cyan-400" />
@@ -199,6 +166,36 @@ export default function ProjectorDisplayPage() {
           </button>
         </div>
       </header>
+
+      {/* Market Ticker Strip across the 10 Indian equities (Inspired by View 2) */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 xl:grid-cols-10 gap-2 font-mono text-xs mb-4">
+        {(Object.keys(room.assets) as AssetId[]).map((aid) => {
+          const a = room.assets[aid];
+          const isPos = a.changePercent >= 0;
+          const isSelected = selectedAssetId === aid;
+
+          return (
+            <button
+              key={aid}
+              onClick={() => setSelectedAssetId(aid)}
+              className={`p-2.5 rounded-xl text-left border-l-4 transition-all glass-card ${
+                isPos ? "border-l-emerald-400" : "border-l-rose-500"
+              } ${isSelected ? "ring-2 ring-cyan-400 bg-slate-800/80" : "hover:bg-slate-800/40"}`}
+            >
+              <div className="text-slate-400 text-[10px] font-bold">{aid}</div>
+              <div className="text-xs font-bold text-white mt-0.5 truncate">{formatINR(a.currentPrice)}</div>
+              <div
+                className={`text-[10px] font-semibold flex items-center gap-0.5 ${
+                  isPos ? "text-emerald-400" : "text-rose-400"
+                }`}
+              >
+                {isPos ? "+" : ""}
+                {a.changePercent.toFixed(1)}%
+              </div>
+            </button>
+          );
+        })}
+      </div>
 
       {/* Grand Finale Podium when Game Ends */}
       {room.status === "ENDED" ? (
@@ -271,33 +268,35 @@ export default function ProjectorDisplayPage() {
 
             {/* Big Presentation Chart */}
             {selectedAsset && (
-              <PriceChart asset={selectedAsset} height={360} />
+              <div className="glass-card rounded-2xl p-4 sm:p-5 shadow-2xl">
+                <PriceChart asset={selectedAsset} height={360} />
+              </div>
             )}
 
             {/* Live Trade Ticker Stream */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 shadow-xl">
-              <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center space-x-1.5">
+            <div className="glass-card rounded-2xl p-4 shadow-xl">
+              <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-2.5 flex items-center space-x-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>Real-Time Execution Stream (Live Orders)</span>
+                <span className="text-white font-mono">Real-Time Execution Stream (Live Orders)</span>
               </div>
 
               <div className="flex space-x-3 overflow-x-auto pb-1 text-xs font-mono">
                 {room.recentTrades.length === 0 ? (
-                  <span className="text-slate-500 italic">Waiting for student orders...</span>
+                  <span className="text-slate-500 italic py-1">Waiting for student orders...</span>
                 ) : (
                   room.recentTrades.slice(0, 10).map((trade) => {
                     const isBuy = trade.side === "BUY";
                     return (
                       <div
                         key={trade.id}
-                        className={`shrink-0 px-3 py-1.5 rounded-lg border flex items-center space-x-2 ${
+                        className={`shrink-0 px-3 py-1.5 rounded-xl border flex items-center space-x-2 ${
                           isBuy
-                            ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300"
-                            : "bg-rose-950/40 border-rose-500/40 text-rose-300"
+                            ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-950/50"
+                            : "bg-rose-950/40 border-rose-500/40 text-rose-300 shadow-sm shadow-rose-950/50"
                         }`}
                       >
                         <span className="font-bold text-white">{trade.playerName}</span>
-                        <span className="font-black">{trade.side}</span>
+                        <span className="font-black text-[10px] px-1 py-0.2 rounded bg-black/40">{trade.side}</span>
                         <span>
                           {trade.quantity} {trade.assetId}
                         </span>
@@ -320,7 +319,7 @@ export default function ProjectorDisplayPage() {
 
       {/* Footer Info */}
       <footer className="text-center text-xs text-slate-500 font-mono py-2">
-        Classroom Trading Simulation • Indian Stock Exchange Engine (₹ INR)
+        JSE — Jain University Stock Exchange Simulation Engine (₹ INR)
       </footer>
     </div>
   );

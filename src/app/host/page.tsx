@@ -248,7 +248,7 @@ export default function HostDashboardPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 space-y-6">
       {/* Host Header */}
-      <header className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+      <header className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4 glass-card rounded-2xl p-4 shadow-xl">
         <div className="flex items-center space-x-3.5">
           <div className="p-2 bg-white rounded-xl shadow-lg border border-slate-700 shrink-0">
             <img
@@ -260,14 +260,14 @@ export default function HostDashboardPage() {
           <div>
             <div className="flex items-center space-x-2">
               <h1 className="text-xl font-black text-white">
-                JSE <span className="text-cyan-400">Teacher Command Center</span>
+                JSE <span className="text-cyan-400">Faculty Command Terminal</span>
               </h1>
               <span className="text-xs px-2.5 py-0.5 rounded-full font-mono font-bold bg-slate-800 text-cyan-400 border border-slate-700">
-                ROOM: {room.code}
+                PIN: {room.code}
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Jain University Stock Exchange • Orchestrate rounds, news shocks, and student portfolios in ₹ INR.
+              Jain University Stock Exchange • Orchestrate rounds, macro catalysts, and student portfolios in ₹ INR.
             </p>
           </div>
         </div>
@@ -314,6 +314,47 @@ export default function HostDashboardPage() {
           onResetRoom={handleResetRoom}
         />
 
+        {/* Telemetry Stats Cards (Inspired by View 1) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+          <div className="glass-card rounded-2xl p-4 flex items-center justify-between shadow-lg">
+            <div>
+              <span className="text-xs text-slate-400 block uppercase font-mono">Live Nodes</span>
+              <span className="text-2xl font-black text-white">{studentCount} <span className="text-xs font-normal text-slate-400">Traders</span></span>
+            </div>
+            <div className="text-right">
+              <span className="text-xs text-emerald-400 font-medium flex items-center justify-end gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Active
+              </span>
+              <span className="text-[11px] text-cyan-400 font-mono mt-0.5 block">
+                Room: {room.code}
+              </span>
+            </div>
+          </div>
+
+          <div className="glass-card rounded-2xl p-4 flex items-center justify-between shadow-lg">
+            <div>
+              <span className="text-xs text-slate-400 block uppercase font-mono">Total Executions</span>
+              <span className="text-2xl font-black text-cyan-400">{room.recentTrades.length}</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+              <Users className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="glass-card rounded-2xl p-4 flex items-center justify-between shadow-lg">
+            <div>
+              <span className="text-xs text-slate-400 block uppercase font-mono">Market Session</span>
+              <span className="text-xl font-black text-emerald-400">
+                {room.status === "ACTIVE" ? "TRADING LIVE" : room.status === "PAUSED" ? "HALTED" : "LOBBY"}
+              </span>
+            </div>
+            <div className="text-right text-xs text-slate-400 font-mono">
+              <div>Round {room.currentRound} / {room.totalRounds}</div>
+              <div className="text-[11px] text-amber-400">₹10 Lakh Base</div>
+            </div>
+          </div>
+        </div>
+
         {/* Sentiment Meter */}
         <SentimentMeter recentTrades={room.recentTrades} />
 
@@ -327,14 +368,6 @@ export default function HostDashboardPage() {
           </div>
 
           <div className="space-y-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Users className="w-4 h-4 text-cyan-400" />
-                <span className="text-xs font-bold text-slate-300">Connected Students</span>
-              </div>
-              <span className="text-lg font-black font-mono text-white">{studentCount}</span>
-            </div>
-
             <LiveLeaderboard
               players={room.players}
               maxDisplay={15}
