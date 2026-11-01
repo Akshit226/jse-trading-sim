@@ -220,14 +220,14 @@ function PlayRoomContent() {
 
   // RENDER APP COMPONENT (Native Smartphone Experience)
   const renderAppView = () => (
-    <div className="w-full max-w-sm mx-auto rounded-[38px] p-3 sm:p-4 bg-gradient-to-b from-slate-800 via-slate-900 to-black border-4 border-slate-800 shadow-2xl relative">
-      {/* Dynamic Notch / Status Dot */}
-      <div className="w-28 h-4 bg-black rounded-full mx-auto mb-3 flex items-center justify-end px-3">
+    <div className="w-full sm:max-w-md mx-auto sm:rounded-[38px] sm:p-3 sm:bg-gradient-to-b sm:from-slate-800 sm:via-slate-900 sm:to-black sm:border-4 sm:border-slate-800 sm:shadow-2xl relative">
+      {/* Dynamic Notch: Displayed exclusively in desktop preview mode */}
+      <div className="hidden sm:flex w-28 h-4 bg-black rounded-full mx-auto mb-3 items-center justify-end px-3">
         <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
       </div>
 
-      {/* Screen Inner Container */}
-      <div className="bg-[#090E17] rounded-[28px] p-4 text-white overflow-hidden border border-slate-800 space-y-4">
+      {/* Screen Container */}
+      <div className="bg-[#090E17] sm:rounded-[28px] p-3.5 sm:p-4 text-white border border-slate-800/80 space-y-4 rounded-2xl">
         {/* Mobile Header Bar */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -260,7 +260,8 @@ function PlayRoomContent() {
           </div>
         )}
 
-        {/* Portfolio Value Card (Inspired by View 3) */}
+        {/* Portfolio Value Card (Shown on Trade, Markets, Rankings tabs) */}
+        {activeTab !== "portfolio" && (
         <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-800/90 to-slate-900 border border-slate-700/60 shadow-lg relative overflow-hidden">
           <div className="text-[10px] uppercase font-mono tracking-wider text-slate-400 flex items-center justify-between">
             <span>Total Portfolio Value</span>
@@ -304,6 +305,7 @@ function PlayRoomContent() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Active Trade Box */}
         {activeTab === "trade" && selectedAsset && (
@@ -349,7 +351,7 @@ function PlayRoomContent() {
 
             {/* Mini Sparkline Chart */}
             <div className="w-full">
-              <PriceChart asset={selectedAsset} height={130} />
+              <PriceChart asset={selectedAsset} height={120} hideHeader={true} hideWrapper={true} />
             </div>
 
             {/* Lot Size Chips */}
@@ -454,38 +456,46 @@ function PlayRoomContent() {
         )}
 
         {/* Bottom Tab Bar (App Navigation) */}
-        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-around text-slate-400 text-[10px]">
+        <div className="sticky bottom-0 z-30 -mx-3.5 sm:-mx-4 -mb-3.5 sm:-mb-4 pt-2.5 pb-2 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around text-slate-400 text-[10px] rounded-b-2xl sm:rounded-b-[28px]">
           <button
+            type="button"
             onClick={() => setActiveTab("trade")}
             className={`flex flex-col items-center transition-colors ${
               activeTab === "trade" ? "text-cyan-400 font-bold" : "hover:text-slate-200"
             }`}
           >
-            <TrendingUp className="w-4 h-4 mb-0.5" /> Trade
+            <TrendingUp className="w-4 h-4 mb-0.5" />
+            <span>Trade</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("portfolio")}
             className={`flex flex-col items-center transition-colors ${
               activeTab === "portfolio" ? "text-cyan-400 font-bold" : "hover:text-slate-200"
             }`}
           >
-            <Briefcase className="w-4 h-4 mb-0.5" /> Portfolio
+            <Briefcase className="w-4 h-4 mb-0.5" />
+            <span>Portfolio</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("markets")}
             className={`flex flex-col items-center transition-colors ${
               activeTab === "markets" ? "text-cyan-400 font-bold" : "hover:text-slate-200"
             }`}
           >
-            <PieChart className="w-4 h-4 mb-0.5" /> Markets
+            <PieChart className="w-4 h-4 mb-0.5" />
+            <span>Markets</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("leaderboard")}
             className={`flex flex-col items-center transition-colors ${
               activeTab === "leaderboard" ? "text-cyan-400 font-bold" : "hover:text-slate-200"
             }`}
           >
-            <Trophy className="w-4 h-4 mb-0.5" /> Rankings
+            <Trophy className="w-4 h-4 mb-0.5" />
+            <span>Rankings</span>
           </button>
         </div>
       </div>
@@ -654,7 +664,7 @@ function PlayRoomContent() {
 
               {/* Chart SVG */}
               <div className="mt-3">
-                <PriceChart asset={selectedAsset} height={250} />
+                <PriceChart asset={selectedAsset} height={250} hideHeader={true} hideWrapper={true} />
               </div>
             </div>
           )}
@@ -692,19 +702,19 @@ function PlayRoomContent() {
     <div className="min-h-screen bg-[#070B12] text-slate-100 pb-16 font-sans">
       {/* Top Global Navigation Bar */}
       <header className="border-b border-slate-800/80 bg-[#0A0E17]/90 sticky top-0 z-50 backdrop-blur-md px-4 sm:px-6 py-2.5">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           {/* Brand & Identity */}
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-cyan-400 to-emerald-400 flex items-center justify-center font-black text-black text-sm tracking-tight shadow-md">
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-cyan-400 to-emerald-400 flex items-center justify-center font-black text-black text-sm tracking-tight shadow-md shrink-0">
               JSE
             </div>
-            <div>
-              <div className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase leading-none">
+            <div className="min-w-0">
+              <div className="text-[10px] sm:text-[11px] font-semibold tracking-wider text-slate-400 uppercase leading-none truncate">
                 Jain University
               </div>
-              <div className="text-sm font-bold tracking-tight text-white flex items-center gap-2 mt-0.5">
-                <span>{currentPlayer.name}</span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono">
+              <div className="text-xs sm:text-sm font-bold tracking-tight text-white flex items-center gap-1.5 mt-0.5 truncate">
+                <span className="truncate">{currentPlayer.name}</span>
+                <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono shrink-0">
                   #{currentPlayer.rank}
                 </span>
                 <span className="hidden sm:inline-block text-[11px] text-slate-400">
@@ -715,10 +725,11 @@ function PlayRoomContent() {
           </div>
 
           {/* View Mode Switcher: Web Pro Terminal vs Mobile App */}
-          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-medium">
+          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-medium shrink-0">
             <button
+              type="button"
               onClick={() => setViewMode("web")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg transition-all ${
                 viewMode === "web" || (viewMode === "responsive" && typeof window !== "undefined" && window.innerWidth >= 1024)
                   ? "text-white bg-slate-800 shadow font-bold"
                   : "text-slate-400 hover:text-white"
@@ -726,12 +737,13 @@ function PlayRoomContent() {
             >
               <Monitor className="w-3.5 h-3.5 text-cyan-400" />
               <span className="hidden sm:inline">Web Pro Terminal</span>
-              <span className="sm:hidden">Web</span>
+              <span className="sm:hidden text-[11px]">Web</span>
             </button>
 
             <button
+              type="button"
               onClick={() => setViewMode("app")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg transition-all ${
                 viewMode === "app" || (viewMode === "responsive" && typeof window !== "undefined" && window.innerWidth < 1024)
                   ? "text-white bg-slate-800 shadow font-bold"
                   : "text-slate-400 hover:text-white"
@@ -739,19 +751,19 @@ function PlayRoomContent() {
             >
               <Smartphone className="w-3.5 h-3.5 text-purple-400" />
               <span className="hidden sm:inline">Mobile App View</span>
-              <span className="sm:hidden">App</span>
+              <span className="sm:hidden text-[11px]">App</span>
             </button>
           </div>
 
-          {/* Audio, Clock & PIN */}
-          <div className="flex items-center gap-3 text-xs">
+          {/* Audio & Net Worth */}
+          <div className="flex items-center gap-2 sm:gap-3 text-xs shrink-0">
             <div className="hidden md:flex flex-col text-right font-mono text-xs">
               <span className="text-slate-400 text-[10px]">ROOM PIN</span>
               <span className="font-bold text-cyan-400">{roomCode}</span>
             </div>
 
             <div className="text-right">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+              <div className="hidden sm:block text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                 Total Net Worth
               </div>
               <div className="text-xs sm:text-sm font-black font-mono text-emerald-400">
@@ -760,9 +772,10 @@ function PlayRoomContent() {
             </div>
 
             <button
+              type="button"
               onClick={toggleSound}
               title="Toggle Audio & AI Voice"
-              className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition-all border border-slate-700"
+              className="p-1.5 sm:p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition-all border border-slate-700"
             >
               {soundEnabled ? (
                 <Volume2 className="w-4 h-4 text-cyan-400" />

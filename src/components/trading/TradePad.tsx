@@ -33,6 +33,17 @@ export const TradePad: React.FC<TradePadProps> = ({
   const [internalAssetId, setInternalAssetId] = useState<AssetId>("MPHASIS");
   const selectedAssetId = externalAssetId || internalAssetId;
 
+  const [activeSector, setActiveSector] = useState<"IT" | "FMCG">("IT");
+
+  const asset = room.assets?.[selectedAssetId];
+
+  // Auto-align active sector tab to the selected stock
+  React.useEffect(() => {
+    if (asset?.category) {
+      setActiveSector(asset.category as "IT" | "FMCG");
+    }
+  }, [asset?.category]);
+
   const handleSelect = (aid: AssetId) => {
     setInternalAssetId(aid);
     if (onSelectAsset) onSelectAsset(aid);
@@ -43,7 +54,6 @@ export const TradePad: React.FC<TradePadProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const asset = room.assets[selectedAssetId];
   const holding = player.shares[selectedAssetId] || 0;
   const estimatedTotal = Number((quantity * (asset?.currentPrice || 0)).toFixed(2));
   const maxBuyAffordable = asset && asset.currentPrice > 0 ? Math.floor(player.cash / asset.currentPrice) : 0;
@@ -139,44 +149,73 @@ export const TradePad: React.FC<TradePadProps> = ({
             <span>Select Indian Stock</span>
           </span>
           <span className="text-[11px] font-mono text-cyan-400 font-semibold">
-            {Object.keys(room.assets).length} Equities Available
+            {Object.keys(room.assets || {}).length} Equities Available
           </span>
         </div>
 
-        {/* 10 Stocks Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-          {(Object.keys(room.assets) as AssetId[]).map((aid) => {
-            const a = room.assets[aid];
-            const isSelected = selectedAssetId === aid;
-            const isPos = a.changePercent >= 0;
+        {/* Sector Filter Tabs */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono">
+          <button
+            type="button"
+            onClick={() => setActiveSector("IT")}
+            className={`py-1 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+              activeSector === "IT"
+                ? "bg-slate-800 text-cyan-300 shadow border border-cyan-500/30"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <span>💻 IT Sector (5)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSector("FMCG")}
+            className={`py-1 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+              activeSector === "FMCG"
+                ? "bg-slate-800 text-emerald-300 shadow border border-emerald-500/30"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <span>🛒 FMCG Staples (5)</span>
+          </button>
+        </div>
 
-            return (
-              <button
-                key={aid}
-                onClick={() => handleSelect(aid)}
-                className={`py-2 px-2.5 rounded-xl text-left transition-all border ${
-                  isSelected
-                    ? "bg-slate-800/90 border-cyan-400 shadow-md shadow-cyan-950/60 ring-1 ring-cyan-400/50"
-                    : "bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-white">{aid}</span>
-                  <span
-                    className={`text-[9px] font-bold font-mono ${
-                      isPos ? "text-emerald-400" : "text-rose-400"
-                    }`}
-                  >
-                    {isPos ? "+" : ""}
-                    {a.changePercent.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="text-[11px] font-bold font-mono text-cyan-300 mt-0.5">
-                  {formatINR(a.currentPrice)}
-                </div>
-              </button>
-            );
-          })}
+        {/* Active Sector Stocks in spacious 2-column layout */}
+        <div className="grid grid-cols-2 gap-2">
+          {(Object.keys(room.assets || {}) as AssetId[])
+            .filter((aid) => room.assets[aid]?.category === activeSector)
+            .map((aid) => {
+              const a = room.assets[aid];
+              const isSelected = selectedAssetId === aid;
+              const isPos = a.changePercent >= 0;
+
+              return (
+                <button
+                  key={aid}
+                  type="button"
+                  onClick={() => handleSelect(aid)}
+                  className={`p-2.5 rounded-xl text-left transition-all border ${
+                    isSelected
+                      ? "bg-slate-800/95 border-cyan-400 shadow-md shadow-cyan-950/60 ring-2 ring-cyan-400/40"
+                      : "bg-slate-900/70 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white">{aid}</span>
+                    <span
+                      className={`text-[10px] font-bold font-mono ${
+                        isPos ? "text-emerald-400" : "text-rose-400"
+                      }`}
+                    >
+                      {isPos ? "+" : ""}
+                      {a.changePercent.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="text-xs font-black font-mono text-cyan-300 mt-1">
+                    {formatINR(a.currentPrice)}
+                  </div>
+                </button>
+              );
+            })}
         </div>
       </div>
 

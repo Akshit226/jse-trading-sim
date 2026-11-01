@@ -8,9 +8,16 @@ import { TrendingUp, TrendingDown, Clock } from "lucide-react";
 interface PriceChartProps {
   asset: Asset;
   height?: number;
+  hideHeader?: boolean;
+  hideWrapper?: boolean;
 }
 
-export const PriceChart: React.FC<PriceChartProps> = ({ asset, height = 240 }) => {
+export const PriceChart: React.FC<PriceChartProps> = ({
+  asset,
+  height = 240,
+  hideHeader = false,
+  hideWrapper = false,
+}) => {
   const isPositive = asset.changePercent >= 0;
   const strokeColor = isPositive ? "#10b981" : "#ef4444";
   const gradientId = `gradient-${asset.id}`;
@@ -27,11 +34,11 @@ export const PriceChart: React.FC<PriceChartProps> = ({ asset, height = 240 }) =
     const range = max - min || 1;
 
     const width = 500;
-    const chartHeight = height - 45;
+    const chartHeight = Math.max(30, height - (hideHeader ? 25 : 45));
 
     const coords = history.map((h, i) => {
       const x = (i / Math.max(1, history.length - 1)) * width;
-      const y = chartHeight - ((h.price - min) / range) * chartHeight + 20;
+      const y = chartHeight - ((h.price - min) / range) * chartHeight + (hideHeader ? 10 : 20);
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
 
@@ -40,45 +47,47 @@ export const PriceChart: React.FC<PriceChartProps> = ({ asset, height = 240 }) =
       minPrice: Math.min(...prices),
       maxPrice: Math.max(...prices),
     };
-  }, [asset.historicalPrices, asset.currentPrice, height]);
+  }, [asset.historicalPrices, asset.currentPrice, height, hideHeader]);
 
   const prevClose = asset.previousClosePrice || asset.basePrice;
 
-  return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-sm">
-      {/* Asset Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="text-xl sm:text-2xl font-black tracking-wider text-white">
-              {asset.id}
-            </span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full font-extrabold bg-slate-800 text-cyan-300 border border-slate-700">
-              {asset.category}
-            </span>
+  const content = (
+    <>
+      {/* Asset Header (Optional) */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-xl sm:text-2xl font-black tracking-wider text-white">
+                {asset.id}
+              </span>
+              <span className="text-xs px-2.5 py-0.5 rounded-full font-extrabold bg-slate-800 text-cyan-300 border border-slate-700">
+                {asset.category}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">{asset.name}</p>
           </div>
-          <p className="text-xs text-slate-400 font-medium mt-0.5">{asset.name}</p>
-        </div>
 
-        <div className="text-right">
-          <div className="text-2xl sm:text-3xl font-black tracking-tight text-white font-mono">
-            {formatINR(asset.currentPrice)}
-          </div>
-          <div
-            className={`flex items-center justify-end text-xs font-black font-mono mt-0.5 ${
-              isPositive ? "text-emerald-400" : "text-rose-400"
-            }`}
-          >
-            {isPositive ? (
-              <TrendingUp className="w-3.5 h-3.5 mr-1" />
-            ) : (
-              <TrendingDown className="w-3.5 h-3.5 mr-1" />
-            )}
-            {isPositive ? "+" : ""}
-            {asset.changePercent.toFixed(2)}%
+          <div className="text-right">
+            <div className="text-2xl sm:text-3xl font-black tracking-tight text-white font-mono">
+              {formatINR(asset.currentPrice)}
+            </div>
+            <div
+              className={`flex items-center justify-end text-xs font-black font-mono mt-0.5 ${
+                isPositive ? "text-emerald-400" : "text-rose-400"
+              }`}
+            >
+              {isPositive ? (
+                <TrendingUp className="w-3.5 h-3.5 mr-1" />
+              ) : (
+                <TrendingDown className="w-3.5 h-3.5 mr-1" />
+              )}
+              {isPositive ? "+" : ""}
+              {asset.changePercent.toFixed(2)}%
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* SVG Responsive Chart */}
       <div className="relative w-full overflow-hidden" style={{ height: `${height}px` }}>
@@ -130,14 +139,24 @@ export const PriceChart: React.FC<PriceChartProps> = ({ asset, height = 240 }) =
       </div>
 
       {/* Previous Close & Volume info */}
-      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 font-mono">
+      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-400 font-mono">
         <span className="flex items-center space-x-1">
           <Clock className="w-3 h-3 text-cyan-400" />
           <span>PREV CLOSE: {formatINR(prevClose)}</span>
         </span>
-        <span>VOL: {asset.volume.toLocaleString()} shares</span>
+        <span>VOL: {asset.volume.toLocaleString()}</span>
         <span>DAY: {formatINR(asset.dayLow)} - {formatINR(asset.dayHigh)}</span>
       </div>
+    </>
+  );
+
+  if (hideWrapper) {
+    return <div className="w-full">{content}</div>;
+  }
+
+  return (
+    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-sm">
+      {content}
     </div>
   );
 };
