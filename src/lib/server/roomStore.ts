@@ -75,10 +75,29 @@ export async function fetchRemoteRoom(upper: string): Promise<RoomState | null> 
 
 export function pushRemoteRoom(room: RoomState): void {
   try {
-    fetch(`${FIREBASE_DB_URL}/rooms/${room.code.toUpperCase()}.json`, {
+    const upper = room.code.toUpperCase();
+    const leaderboard = Object.values(room.players || {})
+      .sort((a, b) => b.totalNetWorth - a.totalNetWorth)
+      .slice(0, 10)
+      .map((p, idx) => ({
+        rank: idx + 1,
+        id: p.id,
+        name: p.name,
+        desk: p.desk,
+        totalNetWorth: p.totalNetWorth,
+        returnPercent: p.returnPercent,
+        totalTrades: p.totalTrades,
+      }));
+
+    const payload = {
+      ...room,
+      leaderboard,
+    };
+
+    fetch(`${FIREBASE_DB_URL}/rooms/${upper}.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(room),
+      body: JSON.stringify(payload),
     }).catch(() => {});
   } catch {}
 }

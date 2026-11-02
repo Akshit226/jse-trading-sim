@@ -47,10 +47,6 @@ export const TradePad: React.FC<TradePadProps> = ({
   const maxBuyAffordable = currentPrice > 0 ? Math.floor(player.cash / currentPrice) : 0;
   const isMarketActive = room.status === "ACTIVE";
 
-  // Active desk confidential rumor/whisper
-  const activeWhisper =
-    room.currentNews?.deskWhisper?.desk === player.desk ? room.currentNews.deskWhisper : null;
-
   // Inline Validation Check
   let validationError: string | null = null;
   if (!isMarketActive) {
@@ -72,7 +68,7 @@ export const TradePad: React.FC<TradePadProps> = ({
       id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       playerId: player.id,
       playerName: player.name,
-      desk: player.desk,
+      desk: player.desk || "retail_momentum",
       assetId: selectedAssetId,
       side,
       quantity,
@@ -81,12 +77,13 @@ export const TradePad: React.FC<TradePadProps> = ({
       total: estimatedTotal,
     };
 
+    // Instant audio cue for 0ms physical feedback
+    sounds.playTradeSuccess();
+
     const res = await onTrade(order);
     setLoading(false);
 
-    if (res.success) {
-      sounds.playTradeSuccess();
-    } else {
+    if (!res.success) {
       setErrorMessage(res.error || "Trade execution failed");
     }
   };
@@ -95,20 +92,6 @@ export const TradePad: React.FC<TradePadProps> = ({
 
   return (
     <div className="card-surface p-4 sm:p-5 space-y-4">
-      
-      {/* Confidential Intel Banner if available for this desk */}
-      {activeWhisper && (
-        <div className="p-3 rounded-ui bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs flex items-start gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-bold uppercase tracking-wider text-[10px] text-amber-300 block">
-              Confidential Desk Intel
-            </span>
-            <span className="text-xs">{activeWhisper.rumorText}</span>
-          </div>
-        </div>
-      )}
-
       {/* Header: Asset Name & Quick Context */}
       <div className="flex items-center justify-between pb-3 border-b border-borderSubtle">
         <div className="min-w-0 pr-2">

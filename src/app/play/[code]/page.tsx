@@ -22,6 +22,11 @@ import {
   joinPlayer,
   submitOrder,
   subscribeToRoom,
+  subscribeToRoomMeta,
+  subscribeToAssets,
+  subscribeToPlayerPortfolio,
+  subscribeToNews,
+  calculateOptimisticTrade,
 } from "@/lib/sync/syncService";
 import { PriceChart } from "@/components/trading/PriceChart";
 import { TradePad } from "@/components/trading/TradePad";
@@ -153,15 +158,47 @@ function PlayRoomContent() {
     });
   }, [roomCode, searchParams]);
 
-  // Real-time room subscription
+  // Real-time room subscription with granular micro-listeners
   useEffect(() => {
-    const unsubscribe = subscribeToRoom(roomCode, (updatedRoom) => {
+    const unsubRoom = subscribeToRoom(roomCode, (updatedRoom) => {
       setRoom(updatedRoom);
       if (playerId && updatedRoom.players?.[playerId]) {
         setFallbackPlayer(updatedRoom.players[playerId]);
       }
     });
-    return () => unsubscribe();
+
+    const unsubPlayer = subscribeToPlayerPortfolio(roomCode, playerId, (p) => {
+      setFallbackPlayer(p);
+    });
+
+    const unsubAssets = subscribeToAssets(roomCode, (assets) => {
+      setRoom((prev) => (prev ? { ...prev, assets } : prev));
+    });
+
+    const unsubNews = subscribeToNews(roomCode, (currentNews) => {
+      setRoom((prev) => (prev ? { ...prev, currentNews } : prev));
+    });
+
+    const unsubMeta = subscribeToRoomMeta(roomCode, (meta) => {
+      setRoom((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: meta.status,
+              currentRound: meta.currentRound,
+              roundTimeRemaining: meta.roundTimeRemaining,
+            }
+          : prev
+      );
+    });
+
+    return () => {
+      unsubRoom();
+      unsubPlayer();
+      unsubAssets();
+      unsubNews();
+      unsubMeta();
+    };
   }, [roomCode, playerId]);
 
   // Toggle sound
@@ -180,8 +217,18 @@ function PlayRoomContent() {
     return fallbackPlayer;
   }, [room, playerId, fallbackPlayer]);
 
-  // Handle Trade Execution
+  // Handle Trade Execution with 0ms Optimistic UI Feedback
   const handleExecuteTrade = async (order: TradeOrder) => {
+    if (currentPlayer && selectedAsset) {
+      const optimistic = calculateOptimisticTrade(
+        currentPlayer,
+        selectedAsset,
+        order.side,
+        order.quantity
+      );
+      setFallbackPlayer(optimistic);
+    }
+
     const res = await submitOrder(roomCode, order);
     if (res.success && res.room) {
       setRoom(res.room);
@@ -207,7 +254,6 @@ function PlayRoomContent() {
   }
 
   const selectedAsset = room.assets?.[selectedAssetId] || Object.values(room.assets || {})[0];
-  const deskInfo = DESK_METADATA[currentPlayer.desk];
   const isMarketActive = room.status === "ACTIVE";
   const isReturnPositive = currentPlayer.returnPercent >= 0;
 
@@ -677,7 +723,7 @@ function PlayRoomContent() {
                 </span>
               </div>
               <div className="text-[10px] text-neutralMuted font-mono truncate">
-                {deskInfo?.name} • Room {roomCode}
+                Room {roomCode} • Live Trading Floor
               </div>
             </div>
           </div>

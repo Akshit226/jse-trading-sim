@@ -1,17 +1,38 @@
 import { database, isFirebaseConfigured } from "../firebase";
 import { ref, onValue, set, get } from "firebase/database";
 import {
+  Asset,
   AssetId,
   NewsEvent,
   PlayerPortfolio,
   RoomState,
   TradeOrder,
+  StudentDesk,
 } from "@/types/trading";
 import {
   DEFAULT_ROUND_DURATION,
   INITIAL_ASSETS,
   TOTAL_ROUNDS,
 } from "../constants";
+
+export interface RoomMeta {
+  code: string;
+  status: RoomState["status"];
+  currentRound: number;
+  totalRounds: number;
+  roundTimeRemaining: number;
+  roundDurationSec: number;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  id: string;
+  name: string;
+  desk?: StudentDesk;
+  totalNetWorth: number;
+  returnPercent: number;
+  totalTrades?: number;
+}
 
 const STORAGE_PREFIX = "trading_sim_room_";
 const inMemoryRooms = new Map<string, RoomState>();
@@ -250,6 +271,246 @@ export function subscribeToRoom(
   return () => {
     inPageListeners.get(upperCode)?.delete(safeOnUpdate);
     if (unsubscribeFirebase) unsubscribeFirebase();
+  };
+}
+
+/**
+ * Granular: Subscribes ONLY to room lifecycle metadata (~120 bytes)
+ */
+export function subscribeToRoomMeta(
+  code: string,
+  onUpdate: (meta: RoomMeta) => void
+): () => void {
+  const upperCode = code.toUpperCase();
+  let unsubFirebase: (() => void) | null = null;
+
+  if (isFirebaseConfigured && database) {
+    try {
+      const statusRef = ref(database, `rooms/${upperCode}/status`);
+      const roundRef = ref(database, `rooms/${upperCode}/currentRound`);
+      
+      unsubFirebase = onValue(statusRef, (snap) => {
+        if (snap.exists()) {
+          const current = inMemoryRooms.get(upperCode);
+          const status = snap.val() as RoomState["status"];
+          onUpdate({
+            code: upperCode,
+            status,
+            currentRound: current?.currentRound || 1,
+            totalRounds: current?.totalRounds || TOTAL_ROUNDS,
+            roundTimeRemaining: current?.roundTimeRemaining || DEFAULT_ROUND_DURATION,
+            roundDurationSec: current?.roundDurationSec || DEFAULT_ROUND_DURATION,
+          });
+        }
+      });
+    } catch {}
+  }
+
+  // Also hook into in-page broadcast
+  const listener: RoomListener = (room) => {
+    onUpdate({
+      code: room.code,
+      status: room.status,
+      currentRound: room.currentRound,
+      totalRounds: room.totalRounds,
+      roundTimeRemaining: room.roundTimeRemaining,
+      roundDurationSec: room.roundDurationSec,
+    });
+  };
+
+  if (!inPageListeners.has(upperCode)) {
+    inPageListeners.set(upperCode, new Set());
+  }
+  inPageListeners.get(upperCode)!.add(listener);
+
+  return () => {
+    inPageListeners.get(upperCode)?.delete(listener);
+    if (unsubFirebase) unsubFirebase();
+  };
+}
+
+/**
+ * Granular: Subscribes ONLY to asset price quotes (~2.5 KB)
+ */
+export function subscribeToAssets(
+  code: string,
+  onUpdate: (assets: Record<AssetId, Asset>) => void
+): () => void {
+  const upperCode = code.toUpperCase();
+  let unsubFirebase: (() => void) | null = null;
+
+  if (isFirebaseConfigured && database) {
+    try {
+      const assetsRef = ref(database, `rooms/${upperCode}/assets`);
+      unsubFirebase = onValue(assetsRef, (snap) => {
+        if (snap.exists()) {
+          onUpdate(snap.val() as Record<AssetId, Asset>);
+        }
+      });
+    } catch {}
+  }
+
+  const listener: RoomListener = (room) => {
+    if (room.assets) onUpdate(room.assets);
+  };
+  if (!inPageListeners.has(upperCode)) {
+    inPageListeners.set(upperCode, new Set());
+  }
+  inPageListeners.get(upperCode)!.add(listener);
+
+  return () => {
+    inPageListeners.get(upperCode)?.delete(listener);
+    if (unsubFirebase) unsubFirebase();
+  };
+}
+
+/**
+ * Granular: Subscribes ONLY to the student's personal portfolio (~300 bytes)
+ */
+export function subscribeToPlayerPortfolio(
+  code: string,
+  playerId: string,
+  onUpdate: (player: PlayerPortfolio) => void
+): () => void {
+  const upperCode = code.toUpperCase();
+  let unsubFirebase: (() => void) | null = null;
+
+  if (isFirebaseConfigured && database && playerId) {
+    try {
+      const playerRef = ref(database, `rooms/${upperCode}/players/${playerId}`);
+      unsubFirebase = onValue(playerRef, (snap) => {
+        if (snap.exists()) {
+          onUpdate(snap.val() as PlayerPortfolio);
+        }
+      });
+    } catch {}
+  }
+
+  const listener: RoomListener = (room) => {
+    if (room.players?.[playerId]) {
+      onUpdate(room.players[playerId]);
+    }
+  };
+  if (!inPageListeners.has(upperCode)) {
+    inPageListeners.set(upperCode, new Set());
+  }
+  inPageListeners.get(upperCode)!.add(listener);
+
+  return () => {
+    inPageListeners.get(upperCode)?.delete(listener);
+    if (unsubFirebase) unsubFirebase();
+  };
+}
+
+/**
+ * Granular: Subscribes to live recent trades ticker (~1 KB)
+ */
+export function subscribeToTrades(
+  code: string,
+  onUpdate: (trades: TradeOrder[]) => void
+): () => void {
+  const upperCode = code.toUpperCase();
+  let unsubFirebase: (() => void) | null = null;
+
+  if (isFirebaseConfigured && database) {
+    try {
+      const tradesRef = ref(database, `rooms/${upperCode}/recentTrades`);
+      unsubFirebase = onValue(tradesRef, (snap) => {
+        if (snap.exists()) {
+          const val = snap.val();
+          const list: TradeOrder[] = Array.isArray(val) ? val : Object.values(val || {});
+          onUpdate(list.slice(0, 20));
+        }
+      });
+    } catch {}
+  }
+
+  const listener: RoomListener = (room) => {
+    if (room.recentTrades) onUpdate(room.recentTrades);
+  };
+  if (!inPageListeners.has(upperCode)) {
+    inPageListeners.set(upperCode, new Set());
+  }
+  inPageListeners.get(upperCode)!.add(listener);
+
+  return () => {
+    inPageListeners.get(upperCode)?.delete(listener);
+    if (unsubFirebase) unsubFirebase();
+  };
+}
+
+/**
+ * Granular: Subscribes to breaking news stream
+ */
+export function subscribeToNews(
+  code: string,
+  onUpdate: (news: NewsEvent | null) => void
+): () => void {
+  const upperCode = code.toUpperCase();
+  let unsubFirebase: (() => void) | null = null;
+
+  if (isFirebaseConfigured && database) {
+    try {
+      const newsRef = ref(database, `rooms/${upperCode}/currentNews`);
+      unsubFirebase = onValue(newsRef, (snap) => {
+        if (snap.exists()) {
+          onUpdate(snap.val() as NewsEvent);
+        } else {
+          onUpdate(null);
+        }
+      });
+    } catch {}
+  }
+
+  const listener: RoomListener = (room) => {
+    onUpdate(room.currentNews);
+  };
+  if (!inPageListeners.has(upperCode)) {
+    inPageListeners.set(upperCode, new Set());
+  }
+  inPageListeners.get(upperCode)!.add(listener);
+
+  return () => {
+    inPageListeners.get(upperCode)?.delete(listener);
+    if (unsubFirebase) unsubFirebase();
+  };
+}
+
+/**
+ * Optimistic execution helper: Calculates immediate portfolio updates for 0ms UI latency
+ */
+export function calculateOptimisticTrade(
+  player: PlayerPortfolio,
+  asset: Asset,
+  side: "BUY" | "SELL",
+  quantity: number
+): PlayerPortfolio {
+  const currentHolding = player.shares[asset.id] || 0;
+  const executionPrice = asset.currentPrice;
+  const total = quantity * executionPrice;
+
+  let newCash = player.cash;
+  let newHolding = currentHolding;
+
+  if (side === "BUY") {
+    newCash = Math.max(0, player.cash - total);
+    newHolding = currentHolding + quantity;
+  } else {
+    newCash = player.cash + total;
+    newHolding = Math.max(0, currentHolding - quantity);
+  }
+
+  const updatedShares = {
+    ...player.shares,
+    [asset.id]: newHolding,
+  };
+
+  return {
+    ...player,
+    cash: Number(newCash.toFixed(2)),
+    shares: updatedShares,
+    totalTrades: player.totalTrades + 1,
+    lastActive: Date.now(),
   };
 }
 

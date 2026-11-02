@@ -8,6 +8,10 @@ import {
   getRoomState,
   saveRoomState,
   subscribeToRoom,
+  subscribeToAssets,
+  subscribeToTrades,
+  subscribeToNews,
+  subscribeToRoomMeta,
 } from "@/lib/sync/syncService";
 import { PriceChart } from "@/components/trading/PriceChart";
 import { LiveLeaderboard } from "@/components/shared/LiveLeaderboard";
@@ -52,11 +56,42 @@ export default function ProjectorDisplayPage() {
       }
     });
 
-    const unsubscribe = subscribeToRoom(roomCode, (updatedRoom) => {
+    const unsubscribeRoom = subscribeToRoom(roomCode, (updatedRoom) => {
       setRoom(updatedRoom);
     });
 
-    return () => unsubscribe();
+    const unsubAssets = subscribeToAssets(roomCode, (assets) => {
+      setRoom((prev) => (prev ? { ...prev, assets } : prev));
+    });
+
+    const unsubTrades = subscribeToTrades(roomCode, (recentTrades) => {
+      setRoom((prev) => (prev ? { ...prev, recentTrades } : prev));
+    });
+
+    const unsubNews = subscribeToNews(roomCode, (currentNews) => {
+      setRoom((prev) => (prev ? { ...prev, currentNews } : prev));
+    });
+
+    const unsubMeta = subscribeToRoomMeta(roomCode, (meta) => {
+      setRoom((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: meta.status,
+              currentRound: meta.currentRound,
+              roundTimeRemaining: meta.roundTimeRemaining,
+            }
+          : prev
+      );
+    });
+
+    return () => {
+      unsubscribeRoom();
+      unsubAssets();
+      unsubTrades();
+      unsubNews();
+      unsubMeta();
+    };
   }, [roomCode]);
 
   useEffect(() => {

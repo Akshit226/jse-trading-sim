@@ -372,7 +372,7 @@ export default function HomePage() {
                       {showFacultyGate ? "Faculty Console" : "Trader Sign-In"}
                     </h2>
                     <p className="text-xs text-neutralMuted mt-0.5">
-                      {showFacultyGate ? "Facilitator controls & projector HUD" : "Select your syndicate desk to join floor"}
+                      {showFacultyGate ? "Facilitator controls & projector HUD" : "Enter your trader name and classroom PIN"}
                     </p>
                   </div>
                 </div>
@@ -419,109 +419,6 @@ export default function HomePage() {
                         onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                         className="w-full min-h-touch bg-surface-subtle border border-borderSubtle focus:border-borderFocus rounded-ui px-3.5 py-2 text-sm text-white font-mono uppercase tracking-widest font-bold focus:outline-none transition-colors"
                       />
-                    </div>
-                  </div>
-
-                  {/* Desk Selector: 4 Compact Radio Cards */}
-                  <div className="space-y-2 pt-1">
-                    <span className="block text-xs font-bold text-neutralMuted uppercase tracking-wider">
-                      Select Syndicate Desk
-                    </span>
-
-                    <div className="space-y-2">
-                      {DESK_OPTIONS.map((desk) => {
-                        const isSelected = selectedDesk === desk.id;
-                        const isExpanded = expandedDesk === desk.id;
-
-                        return (
-                          <div
-                            key={desk.id}
-                            className={`rounded-ui border transition-colors p-3.5 ${
-                              isSelected
-                                ? "border-accent bg-accent-subtle"
-                                : "border-borderSubtle bg-surface-subtle hover:border-borderStrong"
-                            }`}
-                          >
-                            {/* Radio Click Area */}
-                            <div
-                              onClick={() => setSelectedDesk(desk.id)}
-                              className="flex items-center justify-between cursor-pointer"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                                    isSelected ? "border-accent" : "border-borderStrong"
-                                  }`}
-                                >
-                                  {isSelected && <div className="w-2 h-2 rounded-full bg-accent" />}
-                                </div>
-                                <div>
-                                  <div className="text-sm font-bold text-white">{desk.name}</div>
-                                  <div className="text-xs text-neutralMuted">{desk.focus}</div>
-                                </div>
-                              </div>
-
-                              <div className="text-right shrink-0 pl-2">
-                                <span className="font-mono text-xs font-bold text-white">
-                                  {desk.cash}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Expandable "View Holdings" Row */}
-                            <div className="mt-2 pt-2 border-t border-borderSubtle flex items-center justify-between text-xs">
-                              <span className="text-[11px] text-neutralMuted font-mono truncate">
-                                {desk.holdingsSummary}
-                              </span>
-
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setExpandedDesk(isExpanded ? null : desk.id);
-                                }}
-                                className="text-[11px] text-accent hover:underline flex items-center gap-0.5 ml-2 shrink-0 font-medium"
-                              >
-                                <span>{isExpanded ? "Hide" : "View"} holdings</span>
-                                {isExpanded ? (
-                                  <ChevronUp className="w-3 h-3" />
-                                ) : (
-                                  <ChevronDown className="w-3 h-3" />
-                                )}
-                              </button>
-                            </div>
-
-                            {/* Expanded Share Chips */}
-                            {isExpanded && (
-                              <div className="space-y-1 mt-2.5 pt-2 border-t border-borderSubtle">
-                                {desk.shares.map((s, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="flex items-center justify-between text-[11px] py-1 px-1.5 rounded bg-surface/50"
-                                  >
-                                    <div className="flex items-center gap-1.5 min-w-0 pr-2">
-                                      <span className="font-bold text-white truncate max-w-[140px] sm:max-w-[200px]">
-                                        {getCompanyFullName(s.ticker)}
-                                      </span>
-                                      <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-surface border border-borderSubtle text-neutralMuted shrink-0">
-                                        {s.ticker}
-                                      </span>
-                                    </div>
-                                    <div className="text-right shrink-0 flex items-center gap-2 font-mono">
-                                      <span className="text-[10px] text-accent hidden sm:inline">
-                                        {getCompanyIndustry(s.ticker)}
-                                      </span>
-                                      <span className="font-bold text-white tabular-nums">
-                                        {s.count} shs
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
                     </div>
                   </div>
 

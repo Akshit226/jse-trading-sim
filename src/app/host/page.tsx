@@ -11,6 +11,7 @@ import {
   saveRoomState,
   spawnBots,
   subscribeToRoom,
+  subscribeToTrades,
   triggerNewsEvent,
   updateRoomStatus,
 } from "@/lib/sync/syncService";
@@ -129,7 +130,14 @@ function HostDashboardContent() {
       setRoom(updatedRoom);
     });
 
-    return () => unsubscribe();
+    const unsubTrades = subscribeToTrades(roomCode, (recentTrades) => {
+      setRoom((prev) => (prev ? { ...prev, recentTrades } : prev));
+    });
+
+    return () => {
+      unsubscribe();
+      unsubTrades();
+    };
   }, [roomCode]);
 
   const handleUpdateStatus = async (status: RoomState["status"]) => {
