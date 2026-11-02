@@ -252,6 +252,14 @@ export async function joinPlayer(
 ): Promise<RoomState> {
   const upperCode = roomCode.toUpperCase();
 
+  // Instant direct Firebase RTDB write for immediate multi-client sync
+  if (typeof window !== "undefined" && isFirebaseConfigured && database) {
+    try {
+      const playerRef = ref(database, `rooms/${upperCode}/players/${player.id}`);
+      set(playerRef, player).catch(() => {});
+    } catch {}
+  }
+
   if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/room", {

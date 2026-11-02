@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getDatabase, Database, connectDatabaseEmulator } from "firebase/database";
+import { getDatabase, Database, connectDatabaseEmulator, ref, onValue } from "firebase/database";
 import { getAnalytics, isSupported, Analytics } from "firebase/analytics";
 
 const isEmulator = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true";
@@ -59,6 +59,45 @@ if (typeof window !== "undefined" && (isFirebaseConfigured || isEmulator)) {
   } catch (err) {
     console.warn("Failed to initialize Firebase Realtime Database:", err);
   }
+}
+
+export function subscribeToFirebaseConnection(
+  onStatusChange: (connected: boolean) => void
+): () => void {
+  if (typeof window !== "undefined" && database) {
+    try {
+      const connectedRef = ref(database, ".info/connected");
+      const unsubscribe = onValue(
+        connectedRef,
+        (snap) => {
+          onStatusChange(Boolean(snap.val()));
+        },
+        () => {
+          onStatusChange(false);
+        }
+      );
+      return () => unsubscribe();
+    } catch {
+      onStatusChange(false);
+      return () => {};
+    }
+  }
+  onStatusChange(false);
+  return () => {};
+}
+
+export function getFirebaseConnectionStatus(): {
+  isConfigured: boolean;
+  isEmulator: boolean;
+  databaseUrl: string;
+  projectId: string;
+} {
+  return {
+    isConfigured: isFirebaseConfigured,
+    isEmulator,
+    databaseUrl: firebaseConfig.databaseURL || "",
+    projectId,
+  };
 }
 
 export { app, database, analytics, firebaseConfig };

@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { NewsEvent, RoomState } from "@/types/trading";
+import React, { useEffect, useState, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { NewsEvent, RoomState, StudentDesk, AssetId } from "@/types/trading";
 import {
   advanceRound,
   createInitialRoom,
@@ -13,6 +14,7 @@ import {
   triggerNewsEvent,
   updateRoomStatus,
 } from "@/lib/sync/syncService";
+import { subscribeToFirebaseConnection, isFirebaseConfigured } from "@/lib/firebase";
 import { RoundControl } from "@/components/host/RoundControl";
 import { NewsTriggerModal } from "@/components/host/NewsTriggerModal";
 import { LiveLeaderboard } from "@/components/shared/LiveLeaderboard";
@@ -25,12 +27,30 @@ import {
   ArrowLeft,
   Clock,
   Layers,
+  Users,
+  Search,
+  Activity,
+  Wifi,
+  WifiOff,
+  ChevronDown,
+  ChevronUp,
+  TrendingUp,
+  TrendingDown,
+  RefreshCw,
 } from "lucide-react";
-import { formatINR, DEFAULT_TEACHER_PIN } from "@/lib/constants";
+import {
+  formatINR,
+  DEFAULT_TEACHER_PIN,
+  DESK_METADATA,
+  getCompanyFullName,
+  getCompanyIndustry,
+} from "@/lib/constants";
 import Link from "next/link";
 
-export default function HostDashboardPage() {
-  const [roomCode, setRoomCode] = useState("WALLST");
+function HostDashboardContent() {
+  const searchParams = useSearchParams();
+  const roomParam = searchParams.get("room") || "WALLST";
+  const [roomCode, setRoomCode] = useState(roomParam.toUpperCase());
   const [room, setRoom] = useState<RoomState | null>(null);
 
   // Security gate state
@@ -38,9 +58,21 @@ export default function HostDashboardPage() {
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
 
+  // Real-time Firebase RTDB connection status
+  const [firebaseConnected, setFirebaseConnected] = useState(false);
+
+  // Student Roster search & desk filter
+  const [deskFilter, setDeskFilter] = useState<"ALL" | StudentDesk>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
+
   useEffect(() => {
     const auth = sessionStorage.getItem("jse_teacher_authorized");
     if (auth === "true") setIsAuthorized(true);
+  }, []);
+
+  useEffect(() => {
+    return subscribeToFirebaseConnection(setFirebaseConnected);
   }, []);
 
   const handleUnlock = (e: React.FormEvent) => {
@@ -97,7 +129,11 @@ export default function HostDashboardPage() {
   };
 
   const handleResetRoom = async () => {
-    if (!window.confirm("Are you sure you want to reset all trades and portfolios for this session?")) {
+    if (
+      !window.confirm(
+        "Are you sure you want to reset all trades, students, and portfolios for this session?"
+      )
+    ) {
       return;
     }
     const fresh = await resetRoomState(roomCode);
@@ -110,6 +146,7 @@ export default function HostDashboardPage() {
     setRoom(updated);
   };
 
+  // Enhanced CSV Export including Holdings Breakdown
   const handleExportCSV = () => {
     if (!room) return;
     const playersList = Object.values(room.players || {}).sort(
@@ -118,33 +155,74 @@ export default function HostDashboardPage() {
 
     const headers = [
       "Rank",
-      "Name",
-      "Desk",
-      "Final Net Worth (INR)",
+      "Trader Name",
+      "Syndicate Desk",
+      "Total Net Worth (INR)",
       "Return (%)",
-      "Liquid Cash",
+      "Liquid Cash (INR)",
       "Total Trades",
+      "Portfolio Holdings",
     ];
-    const rows = playersList.map((p, idx) => [
-      idx + 1,
-      `"${p.name.replace(/"/g, '""')}"`,
-      p.desk,
-      p.totalNetWorth.toFixed(2),
-      p.returnPercent.toFixed(2),
-      p.cash.toFixed(2),
-      p.totalTrades,
-    ]);
+
+    const rows = playersList.map((p, idx) => {
+      const holdingsStr = Object.entries(p.shares || {})
+        .filter(([, qty]) => qty > 0)
+        .map(([aid, qty]) => `${aid}:${qty}`)
+        .join("; ");
+
+      return [
+        idx + 1,
+        `"${p.name.replace(/"/g, '""')}"`,
+        `"${DESK_METADATA[p.desk]?.name || p.desk}"`,
+        p.totalNetWorth.toFixed(2),
+        p.returnPercent.toFixed(2),
+        p.cash.toFixed(2),
+        p.totalTrades,
+        `"${holdingsStr}"`,
+      ];
+    });
 
     const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `trading_results_room_${room.code}.csv`);
+    link.setAttribute("download", `JSE_Student_Results_Room_${room.code}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
+  // Filtered student list
+  const allPlayers = useMemo(() => {
+    if (!room?.players) return [];
+    return Object.values(room.players).sort((a, b) => b.totalNetWorth - a.totalNetWorth);
+  }, [room?.players]);
+
+  const filteredStudents = useMemo(() => {
+    return allPlayers.filter((p) => {
+      const matchesDesk = deskFilter === "ALL" || p.desk === deskFilter;
+      const matchesSearch =
+        !searchQuery.trim() ||
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.id.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesDesk && matchesSearch;
+    });
+  }, [allPlayers, deskFilter, searchQuery]);
+
+  // Breakdown counts by desk
+  const deskCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      tech_analyst: 0,
+      fmcg_consumer: 0,
+      institutional_fii: 0,
+      retail_momentum: 0,
+    };
+    allPlayers.forEach((p) => {
+      if (p.desk in counts) counts[p.desk]++;
+    });
+    return counts;
+  }, [allPlayers]);
 
   // LOCKED STATE: PIN Form
   if (!isAuthorized) {
@@ -226,11 +304,38 @@ export default function HostDashboardPage() {
                 <span className="text-[10px] font-mono text-gain font-bold px-1.5 py-0.2 rounded bg-gain-subtle border border-gain-border">
                   VERIFIED
                 </span>
+                
+                {/* Real-Time Live Sync Status Badge */}
+                <div
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1.5 ${
+                    firebaseConnected
+                      ? "bg-gain-subtle text-gain border border-gain-border"
+                      : "bg-amber-500/10 text-amber-300 border border-amber-500/30"
+                  }`}
+                  title={
+                    firebaseConnected
+                      ? "Google Cloud Firebase Realtime Database active and streaming live updates via WebSocket"
+                      : "Dual-Sync HTTP multi-device polling engine active (fallback sync every 1.2s)"
+                  }
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                      firebaseConnected ? "bg-gain" : "bg-amber-400"
+                    }`}
+                  />
+                  <span>{firebaseConnected ? "Firebase RTDB Live" : "Dual-Sync Engine"}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-subtle border border-borderSubtle text-xs font-mono text-neutralMuted">
+              <Users className="w-3.5 h-3.5 text-accent" />
+              <span className="font-bold text-white">{allPlayers.length}</span>
+              <span>Traders</span>
+            </div>
+
             <Link
               href={`/projector/${roomCode}`}
               target="_blank"
@@ -273,6 +378,7 @@ export default function HostDashboardPage() {
               onResetRoom={handleResetRoom}
             />
 
+            {/* News Catalyst Dispatcher & Leaderboard Row */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               {/* News Catalyst Dispatcher (7 cols) */}
               <div className="lg:col-span-7">
@@ -284,12 +390,312 @@ export default function HostDashboardPage() {
 
               {/* Leaderboard & Floor Sentiment (5 cols) */}
               <div className="lg:col-span-5 space-y-4">
-                <LiveLeaderboard
-                  players={room.players}
-                  maxDisplay={15}
-                />
+                <LiveLeaderboard players={room.players} maxDisplay={10} />
                 <SentimentMeter recentTrades={room.recentTrades} />
               </div>
+            </div>
+
+            {/* ============================================================= */}
+            {/* REAL-TIME STUDENT ROSTER & RECORDED PORTFOLIO MONITOR         */}
+            {/* ============================================================= */}
+            <div className="card-surface p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-borderSubtle">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                      <Users className="w-4 h-4 text-accent" />
+                      <span>Live Student Roster & Portfolio Monitor</span>
+                    </h2>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-mono font-bold bg-accent-subtle text-accent border border-accent/20">
+                      {filteredStudents.length} of {allPlayers.length} Active
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutralMuted mt-0.5 font-mono">
+                    Real-time stream of all student portfolios recorded in Firebase Realtime Database
+                  </p>
+                </div>
+
+                {/* Desk Filter Badges */}
+                <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
+                  <button
+                    type="button"
+                    onClick={() => setDeskFilter("ALL")}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                      deskFilter === "ALL"
+                        ? "bg-accent text-white"
+                        : "bg-surface-subtle text-neutralMuted hover:text-white border border-borderSubtle"
+                    }`}
+                  >
+                    ALL ({allPlayers.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeskFilter("tech_analyst")}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                      deskFilter === "tech_analyst"
+                        ? "bg-accent text-white"
+                        : "bg-surface-subtle text-neutralMuted hover:text-white border border-borderSubtle"
+                    }`}
+                  >
+                    IT Tech ({deskCounts.tech_analyst})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeskFilter("fmcg_consumer")}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                      deskFilter === "fmcg_consumer"
+                        ? "bg-accent text-white"
+                        : "bg-surface-subtle text-neutralMuted hover:text-white border border-borderSubtle"
+                    }`}
+                  >
+                    FMCG ({deskCounts.fmcg_consumer})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeskFilter("institutional_fii")}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                      deskFilter === "institutional_fii"
+                        ? "bg-accent text-white"
+                        : "bg-surface-subtle text-neutralMuted hover:text-white border border-borderSubtle"
+                    }`}
+                  >
+                    FII ({deskCounts.institutional_fii})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeskFilter("retail_momentum")}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                      deskFilter === "retail_momentum"
+                        ? "bg-accent text-white"
+                        : "bg-surface-subtle text-neutralMuted hover:text-white border border-borderSubtle"
+                    }`}
+                  >
+                    Retail ({deskCounts.retail_momentum})
+                  </button>
+                </div>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-neutralMuted absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Search student name or trader ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-surface-subtle border border-borderSubtle focus:border-borderFocus rounded-ui pl-9 pr-4 py-2 text-xs text-white placeholder-neutralMuted font-mono focus:outline-none"
+                />
+              </div>
+
+              {/* Students Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead>
+                    <tr className="border-b border-borderSubtle text-neutralMuted uppercase text-[10px] tracking-wider">
+                      <th className="pb-2 pl-2">Rank & Trader</th>
+                      <th className="pb-2">Syndicate Desk</th>
+                      <th className="pb-2 text-right">Net Worth</th>
+                      <th className="pb-2 text-right">Return</th>
+                      <th className="pb-2 text-right">Liquid Cash</th>
+                      <th className="pb-2 text-center">Trades</th>
+                      <th className="pb-2 text-right pr-2">Holdings</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-borderSubtle">
+                    {filteredStudents.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-neutralMuted italic">
+                          No students registered in this desk category yet. Ask students to scan the QR
+                          code or visit <span className="text-accent underline font-bold">/play/{roomCode}</span>.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredStudents.map((student, idx) => {
+                        const isExpanded = expandedStudentId === student.id;
+                        const desk = DESK_METADATA[student.desk];
+                        const isPositive = student.returnPercent >= 0;
+                        const nonZeroShares = Object.entries(student.shares || {}).filter(
+                          ([, qty]) => qty > 0
+                        );
+
+                        return (
+                          <React.Fragment key={student.id}>
+                            <tr className="hover:bg-surface-subtle/60 transition-colors">
+                              <td className="py-2.5 pl-2 font-bold text-white flex items-center gap-2">
+                                <span className="w-5 text-center text-neutralMuted text-[11px]">
+                                  #{idx + 1}
+                                </span>
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-sans text-xs">{student.name}</span>
+                                    {student.id.startsWith("std_") && (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-gain" title="Live human trader" />
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-neutralMuted font-normal">
+                                    {student.id}
+                                  </span>
+                                </div>
+                              </td>
+
+                              <td className="py-2.5">
+                                <span className="px-2 py-0.5 rounded bg-surface border border-borderSubtle text-[10px] text-neutralMuted">
+                                  {desk?.name || student.desk}
+                                </span>
+                              </td>
+
+                              <td className="py-2.5 text-right font-bold text-white tabular-nums">
+                                {formatINR(student.totalNetWorth)}
+                              </td>
+
+                              <td
+                                className={`py-2.5 text-right font-bold tabular-nums ${
+                                  isPositive ? "text-gain" : "text-loss"
+                                }`}
+                              >
+                                {isPositive ? "+" : ""}
+                                {student.returnPercent.toFixed(2)}%
+                              </td>
+
+                              <td className="py-2.5 text-right text-neutralMuted tabular-nums">
+                                {formatINR(student.cash)}
+                              </td>
+
+                              <td className="py-2.5 text-center tabular-nums">
+                                <span className="px-1.5 py-0.5 rounded bg-surface-subtle text-[11px] font-bold text-white border border-borderSubtle">
+                                  {student.totalTrades}
+                                </span>
+                              </td>
+
+                              <td className="py-2.5 text-right pr-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setExpandedStudentId(isExpanded ? null : student.id)
+                                  }
+                                  className="text-[11px] text-accent hover:underline inline-flex items-center gap-1 font-medium"
+                                >
+                                  <span>{nonZeroShares.length} Assets</span>
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-3 h-3" />
+                                  ) : (
+                                    <ChevronDown className="w-3 h-3" />
+                                  )}
+                                </button>
+                              </td>
+                            </tr>
+
+                            {/* Expanded Holdings Breakdown */}
+                            {isExpanded && (
+                              <tr className="bg-surface-subtle/80">
+                                <td colSpan={7} className="px-4 py-3">
+                                  <div className="text-[10px] uppercase font-bold text-neutralMuted mb-1.5">
+                                    {student.name}&apos;s Recorded Stock Portfolio:
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {nonZeroShares.length === 0 ? (
+                                      <span className="text-xs text-neutralMuted italic">
+                                        All cash position (no active equity shares)
+                                      </span>
+                                    ) : (
+                                      nonZeroShares.map(([aid, qty]) => {
+                                        const asset = room.assets?.[aid as AssetId];
+                                        const assetPrice = asset?.currentPrice || 0;
+                                        const totalVal = qty * assetPrice;
+                                        return (
+                                          <div
+                                            key={aid}
+                                            className="px-2.5 py-1 rounded bg-surface border border-borderSubtle text-xs flex items-center gap-2"
+                                          >
+                                            <span className="font-bold text-white">{aid}</span>
+                                            <span className="text-neutralMuted text-[11px]">
+                                              {qty} shs
+                                            </span>
+                                            <span className="text-accent text-[11px] font-bold tabular-nums">
+                                              {formatINR(totalVal)}
+                                            </span>
+                                          </div>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* ============================================================= */}
+            {/* LIVE TRADE EXECUTION STREAM (Incoming Orders in Real Time)   */}
+            {/* ============================================================= */}
+            <div className="card-surface p-5 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-borderSubtle">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-accent" />
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                    Real-Time Order Execution Stream
+                  </h3>
+                </div>
+                <span className="text-xs font-mono text-neutralMuted">
+                  {room.recentTrades?.length || 0} Executed
+                </span>
+              </div>
+
+              {(room.recentTrades?.length || 0) === 0 ? (
+                <div className="text-xs text-neutralMuted italic py-6 text-center font-mono">
+                  Waiting for student orders... Orders executed in /play will appear here in real time.
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 font-mono text-xs">
+                  {room.recentTrades.slice(0, 15).map((trade) => {
+                    const isBuy = trade.side === "BUY";
+                    return (
+                      <div
+                        key={trade.id}
+                        className="p-2.5 rounded bg-surface-subtle border border-borderSubtle flex items-center justify-between hover:border-borderStrong transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 pr-2">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              isBuy
+                                ? "bg-gain-subtle text-gain border border-gain-border"
+                                : "bg-loss-subtle text-loss border border-loss-border"
+                            }`}
+                          >
+                            {trade.side}
+                          </span>
+                          <span className="font-bold text-white truncate max-w-[120px] sm:max-w-none">
+                            {trade.playerName}
+                          </span>
+                          <span className="text-[10px] text-neutralMuted hidden sm:inline">
+                            ({DESK_METADATA[trade.desk]?.name || trade.desk})
+                          </span>
+                        </div>
+
+                        <div className="text-right shrink-0 flex items-center gap-3">
+                          <div className="text-right">
+                            <span className="font-bold text-white">
+                              {trade.quantity} × {trade.assetId}
+                            </span>
+                            <span className="text-[11px] text-neutralMuted block">
+                              @{formatINR(trade.price)}
+                            </span>
+                          </div>
+                          <div className="font-bold text-white tabular-nums">
+                            {formatINR(trade.total)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </>
         )}
@@ -299,5 +705,19 @@ export default function HostDashboardPage() {
         Jain (Deemed-to-be University) • CMS Bengaluru • Facilitator Console
       </footer>
     </div>
+  );
+}
+
+export default function HostDashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-app flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <HostDashboardContent />
+    </Suspense>
   );
 }
