@@ -289,7 +289,12 @@ export default function HomePage() {
     } catch (err: any) {
       console.error("Google Auth error:", err);
       if (err.code === "auth/popup-closed-by-user") {
-        setGoogleError("Sign-in cancelled. Please sign in with Google to enter.");
+        setGoogleError("Sign-in popup was closed. Please try again.");
+      } else if (err.code === "auth/unauthorized-domain") {
+        setGoogleError(
+          "Vercel domain (jse-trading-sim.vercel.app) needs to be authorized in Firebase Console. You can enter your email below in the meantime."
+        );
+        setShowEmailFallback(true);
       } else {
         setGoogleError(err.message || "Google sign-in error.");
         setShowEmailFallback(true);
