@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { StudentDesk } from "@/types/trading";
-import { DEFAULT_TEACHER_PIN } from "@/lib/constants";
+import { DEFAULT_TEACHER_PIN, getCompanyFullName, getCompanyIndustry } from "@/lib/constants";
 import {
   TrendingUp,
   TrendingDown,
@@ -23,6 +23,8 @@ import {
 interface StockQuote {
   id: string;
   name: string;
+  industry: string;
+  subSector: string;
   price: string;
   chg: string;
   pos: boolean;
@@ -30,16 +32,106 @@ interface StockQuote {
 }
 
 const STOCK_ROSTER: StockQuote[] = [
-  { id: "MPHASIS", name: "Mphasis Ltd", price: "₹2,850.00", chg: "+1.2%", pos: true, sector: "IT" },
-  { id: "COFORGE", name: "Coforge Ltd", price: "₹7,600.00", chg: "+2.4%", pos: true, sector: "IT" },
-  { id: "OFSS", name: "Oracle Financial", price: "₹10,500.00", chg: "+0.8%", pos: true, sector: "IT" },
-  { id: "LTTS", name: "L&T Tech Services", price: "₹5,200.00", chg: "-0.4%", pos: false, sector: "IT" },
-  { id: "TATAELXSI", name: "Tata Elxsi", price: "₹7,100.00", chg: "+1.9%", pos: true, sector: "IT" },
-  { id: "COLPAL", name: "Colgate-Palmolive", price: "₹3,100.00", chg: "+0.5%", pos: true, sector: "FMCG" },
-  { id: "PGHH", name: "Procter & Gamble", price: "₹15,800.00", chg: "-1.1%", pos: false, sector: "FMCG" },
-  { id: "RADICO", name: "Radico Khaitan", price: "₹2,150.00", chg: "+3.2%", pos: true, sector: "FMCG" },
-  { id: "UBL", name: "United Breweries", price: "₹1,950.00", chg: "+0.7%", pos: true, sector: "FMCG" },
-  { id: "GILLETTE", name: "Gillette India", price: "₹8,400.00", chg: "+0.3%", pos: true, sector: "FMCG" },
+  {
+    id: "MPHASIS",
+    name: "Mphasis Limited",
+    industry: "Information Technology",
+    subSector: "Cloud & Cognitive Solutions",
+    price: "₹2,850.00",
+    chg: "+1.2%",
+    pos: true,
+    sector: "IT",
+  },
+  {
+    id: "COFORGE",
+    name: "Coforge Limited",
+    industry: "Information Technology",
+    subSector: "Digital Services & AI Solutions",
+    price: "₹7,600.00",
+    chg: "+2.4%",
+    pos: true,
+    sector: "IT",
+  },
+  {
+    id: "OFSS",
+    name: "Oracle Financial Services Software Limited",
+    industry: "Information Technology",
+    subSector: "Core Banking & Fintech",
+    price: "₹10,500.00",
+    chg: "+0.8%",
+    pos: true,
+    sector: "IT",
+  },
+  {
+    id: "LTTS",
+    name: "L&T Technology Services Limited",
+    industry: "Information Technology",
+    subSector: "Engineering R&D (ER&D)",
+    price: "₹5,200.00",
+    chg: "-0.4%",
+    pos: false,
+    sector: "IT",
+  },
+  {
+    id: "TATAELXSI",
+    name: "Tata Elxsi Limited",
+    industry: "Information Technology",
+    subSector: "Design & Autonomous Systems",
+    price: "₹7,100.00",
+    chg: "+1.9%",
+    pos: true,
+    sector: "IT",
+  },
+  {
+    id: "COLPAL",
+    name: "Colgate-Palmolive (India) Limited",
+    industry: "Fast-Moving Consumer Goods",
+    subSector: "Oral Care & Personal Hygiene",
+    price: "₹3,100.00",
+    chg: "+0.5%",
+    pos: true,
+    sector: "FMCG",
+  },
+  {
+    id: "PGHH",
+    name: "Procter & Gamble Hygiene and Health Care Limited",
+    industry: "Fast-Moving Consumer Goods",
+    subSector: "Healthcare & Feminine Care",
+    price: "₹15,800.00",
+    chg: "-1.1%",
+    pos: false,
+    sector: "FMCG",
+  },
+  {
+    id: "RADICO",
+    name: "Radico Khaitan Limited",
+    industry: "Fast-Moving Consumer Goods",
+    subSector: "Distillery & Premium Spirits",
+    price: "₹2,150.00",
+    chg: "+3.2%",
+    pos: true,
+    sector: "FMCG",
+  },
+  {
+    id: "UBL",
+    name: "United Breweries Limited",
+    industry: "Fast-Moving Consumer Goods",
+    subSector: "Brewing & Malt Beverages",
+    price: "₹1,950.00",
+    chg: "+0.7%",
+    pos: true,
+    sector: "FMCG",
+  },
+  {
+    id: "GILLETTE",
+    name: "Gillette India Limited",
+    industry: "Fast-Moving Consumer Goods",
+    subSector: "Grooming & Shaving Systems",
+    price: "₹8,400.00",
+    chg: "+0.3%",
+    pos: true,
+    sector: "FMCG",
+  },
 ];
 
 interface DeskOption {
@@ -235,18 +327,25 @@ export default function HomePage() {
     <main className="min-h-screen bg-app text-slate-100 flex flex-col justify-between motion-view-enter">
       {/* Slim, Slower Continuous Ticker Tape */}
       <div className="w-full bg-surface-subtle border-b border-borderSubtle overflow-hidden py-1.5 [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
-        <div className="animate-slim-ticker space-x-8 text-xs font-mono">
+        <div className="animate-slim-ticker space-x-6 text-xs font-mono">
           {[...STOCK_ROSTER, ...STOCK_ROSTER].map((st, idx) => (
             <div key={idx} className="flex items-center space-x-2 shrink-0">
-              <span className="font-bold text-white">{st.id}</span>
-              <span className="text-neutralMuted">{st.price}</span>
+              <span className="font-bold text-white">{st.name}</span>
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-surface border border-borderSubtle text-neutralMuted">
+                {st.id}
+              </span>
+              <span className="text-[10px] text-accent font-mono">
+                {st.industry}
+              </span>
+              <span className="text-white font-bold tabular-nums">{st.price}</span>
               <span
-                className={`text-[11px] font-mono font-bold ${
+                className={`text-[11px] font-mono font-bold tabular-nums ${
                   st.pos ? "text-gain" : "text-loss"
                 }`}
               >
                 {st.chg}
               </span>
+              <span className="text-borderSubtle mx-1.5 opacity-40">•</span>
             </div>
           ))}
         </div>
@@ -394,14 +493,29 @@ export default function HomePage() {
 
                             {/* Expanded Share Chips */}
                             {isExpanded && (
-                              <div className="flex flex-wrap gap-1.5 mt-2 pt-1">
+                              <div className="space-y-1 mt-2.5 pt-2 border-t border-borderSubtle">
                                 {desk.shares.map((s, idx) => (
-                                  <span
+                                  <div
                                     key={idx}
-                                    className="px-2 py-0.5 rounded bg-surface border border-borderSubtle text-[11px] font-mono text-slate-300"
+                                    className="flex items-center justify-between text-[11px] py-1 px-1.5 rounded bg-surface/50"
                                   >
-                                    {s.ticker} × {s.count}
-                                  </span>
+                                    <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                                      <span className="font-bold text-white truncate max-w-[140px] sm:max-w-[200px]">
+                                        {getCompanyFullName(s.ticker)}
+                                      </span>
+                                      <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-surface border border-borderSubtle text-neutralMuted shrink-0">
+                                        {s.ticker}
+                                      </span>
+                                    </div>
+                                    <div className="text-right shrink-0 flex items-center gap-2 font-mono">
+                                      <span className="text-[10px] text-accent hidden sm:inline">
+                                        {getCompanyIndustry(s.ticker)}
+                                      </span>
+                                      <span className="font-bold text-white tabular-nums">
+                                        {s.count} shs
+                                      </span>
+                                    </div>
+                                  </div>
                                 ))}
                               </div>
                             )}
@@ -550,15 +664,25 @@ export default function HomePage() {
                 {filteredStocks.map((stock) => (
                   <div
                     key={stock.id}
-                    className="p-2.5 rounded-ui bg-surface-subtle border border-borderSubtle flex items-center justify-between text-xs"
+                    className="p-3 rounded-ui bg-surface-subtle border border-borderSubtle flex items-center justify-between text-xs hover:border-borderStrong transition-colors"
                   >
-                    <div>
-                      <div className="font-bold text-white font-mono">{stock.id}</div>
-                      <div className="text-[11px] text-neutralMuted">{stock.name}</div>
+                    <div className="min-w-0 pr-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-white text-xs sm:text-sm tracking-tight">{stock.name}</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-surface border border-borderSubtle text-neutralMuted shrink-0">
+                          {stock.id}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-accent-subtle text-accent border border-accent/20 shrink-0">
+                          {stock.industry}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-neutralMuted truncate mt-0.5 font-mono">
+                        {stock.subSector}
+                      </div>
                     </div>
 
-                    <div className="text-right">
-                      <div className="font-mono font-bold text-white tabular-nums">
+                    <div className="text-right shrink-0">
+                      <div className="font-mono font-bold text-white tabular-nums text-xs sm:text-sm">
                         {stock.price}
                       </div>
                       <div

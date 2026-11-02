@@ -137,12 +137,18 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
               className="w-full bg-surface-subtle border border-borderSubtle focus:border-borderFocus rounded-ui px-3 py-2 text-white text-xs font-mono focus:outline-none"
             >
               <option value="ALL">ALL — Broad Market Index</option>
-              <option value="IT">IT — Sector Basket</option>
-              <option value="FMCG">FMCG — Staples Basket</option>
-              <option value="COFORGE">COFORGE</option>
-              <option value="MPHASIS">MPHASIS</option>
-              <option value="OFSS">OFSS</option>
-              <option value="COLPAL">COLPAL</option>
+              <option value="IT">IT — Information Technology Basket</option>
+              <option value="FMCG">FMCG — Fast-Moving Consumer Goods Basket</option>
+              <option value="MPHASIS">MPHASIS — Mphasis Limited (Information Technology)</option>
+              <option value="COFORGE">COFORGE — Coforge Limited (Information Technology)</option>
+              <option value="OFSS">OFSS — Oracle Financial Services Software (Information Technology)</option>
+              <option value="LTTS">LTTS — L&T Technology Services Limited (Information Technology)</option>
+              <option value="TATAELXSI">TATAELXSI — Tata Elxsi Limited (Information Technology)</option>
+              <option value="COLPAL">COLPAL — Colgate-Palmolive (India) Limited (Fast-Moving Consumer Goods)</option>
+              <option value="PGHH">PGHH — Procter & Gamble Hygiene (Fast-Moving Consumer Goods)</option>
+              <option value="RADICO">RADICO — Radico Khaitan Limited (Fast-Moving Consumer Goods)</option>
+              <option value="UBL">UBL — United Breweries Limited (Fast-Moving Consumer Goods)</option>
+              <option value="GILLETTE">GILLETTE — Gillette India Limited (Fast-Moving Consumer Goods)</option>
             </select>
           </div>
         </div>

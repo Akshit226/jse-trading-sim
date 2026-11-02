@@ -19,11 +19,114 @@ export function formatINR(val: number): string {
   }).format(val);
 }
 
+export interface AssetCompanyInfo {
+  ticker: AssetId;
+  fullName: string;
+  industry: string;
+  sector: "IT" | "FMCG";
+  subSector: string;
+}
+
+export const ASSET_COMPANIES: Record<AssetId, AssetCompanyInfo> = {
+  MPHASIS: {
+    ticker: "MPHASIS",
+    fullName: "Mphasis Limited",
+    industry: "Information Technology",
+    sector: "IT",
+    subSector: "Cloud & Cognitive Solutions",
+  },
+  COFORGE: {
+    ticker: "COFORGE",
+    fullName: "Coforge Limited",
+    industry: "Information Technology",
+    sector: "IT",
+    subSector: "Digital Services & AI Solutions",
+  },
+  OFSS: {
+    ticker: "OFSS",
+    fullName: "Oracle Financial Services Software Limited",
+    industry: "Information Technology",
+    sector: "IT",
+    subSector: "Core Banking & Fintech",
+  },
+  LTTS: {
+    ticker: "LTTS",
+    fullName: "L&T Technology Services Limited",
+    industry: "Information Technology",
+    sector: "IT",
+    subSector: "Engineering R&D (ER&D)",
+  },
+  TATAELXSI: {
+    ticker: "TATAELXSI",
+    fullName: "Tata Elxsi Limited",
+    industry: "Information Technology",
+    sector: "IT",
+    subSector: "Design & Autonomous Systems",
+  },
+  COLPAL: {
+    ticker: "COLPAL",
+    fullName: "Colgate-Palmolive (India) Limited",
+    industry: "Fast-Moving Consumer Goods",
+    sector: "FMCG",
+    subSector: "Oral Care & Personal Hygiene",
+  },
+  PGHH: {
+    ticker: "PGHH",
+    fullName: "Procter & Gamble Hygiene and Health Care Limited",
+    industry: "Fast-Moving Consumer Goods",
+    sector: "FMCG",
+    subSector: "Healthcare & Feminine Care",
+  },
+  RADICO: {
+    ticker: "RADICO",
+    fullName: "Radico Khaitan Limited",
+    industry: "Fast-Moving Consumer Goods",
+    sector: "FMCG",
+    subSector: "Distillery & Premium Spirits",
+  },
+  UBL: {
+    ticker: "UBL",
+    fullName: "United Breweries Limited",
+    industry: "Fast-Moving Consumer Goods",
+    sector: "FMCG",
+    subSector: "Brewing & Malt Beverages",
+  },
+  GILLETTE: {
+    ticker: "GILLETTE",
+    fullName: "Gillette India Limited",
+    industry: "Fast-Moving Consumer Goods",
+    sector: "FMCG",
+    subSector: "Grooming & Shaving Systems",
+  },
+};
+
+export function getCompanyFullName(assetId: string): string {
+  if (assetId in ASSET_COMPANIES) {
+    return ASSET_COMPANIES[assetId as AssetId].fullName;
+  }
+  return assetId;
+}
+
+export function getCompanyIndustry(assetId: string): string {
+  if (assetId in ASSET_COMPANIES) {
+    return ASSET_COMPANIES[assetId as AssetId].industry;
+  }
+  return "Equities";
+}
+
+export function getCompanySubSector(assetId: string): string {
+  if (assetId in ASSET_COMPANIES) {
+    return ASSET_COMPANIES[assetId as AssetId].subSector;
+  }
+  return "";
+}
+
 export const INITIAL_ASSETS: Record<AssetId, Asset> = {
   MPHASIS: {
     id: "MPHASIS",
-    name: "Mphasis Ltd",
+    name: "Mphasis Limited",
     category: "IT",
+    industry: "Information Technology",
     description: "Cloud computing & cognitive solutions provider with strong BFSI client portfolio.",
     basePrice: 2850.0,
     currentPrice: 2850.0,
@@ -37,8 +140,9 @@ export const INITIAL_ASSETS: Record<AssetId, Asset> = {
   },
   COFORGE: {
     id: "COFORGE",
-    name: "Coforge Ltd",
+    name: "Coforge Limited",
     category: "IT",
+    industry: "Information Technology",
     description: "High-growth digital services, AI engineering, and enterprise cloud migration specialist.",
     basePrice: 7600.0,
     currentPrice: 7600.0,
@@ -52,8 +156,9 @@ export const INITIAL_ASSETS: Record<AssetId, Asset> = {
   },
   OFSS: {
     id: "OFSS",
-    name: "Oracle Financial Services Software",
+    name: "Oracle Financial Services Software Limited",
     category: "IT",
+    industry: "Information Technology",
     description: "Cash-rich core banking IT provider, high operating margins & record dividend yield.",
     basePrice: 10500.0,
     currentPrice: 10500.0,
@@ -67,8 +172,9 @@ export const INITIAL_ASSETS: Record<AssetId, Asset> = {
   },
   LTTS: {
     id: "LTTS",
-    name: "L&T Technology Services",
+    name: "L&T Technology Services Limited",
     category: "IT",
+    industry: "Information Technology",
     description: "Global ER&D engineering services leader across automotive, industrial, and aerospace.",
     basePrice: 5200.0,
     currentPrice: 5200.0,
@@ -82,8 +188,9 @@ export const INITIAL_ASSETS: Record<AssetId, Asset> = {
   },
   TATAELXSI: {
     id: "TATAELXSI",
-    name: "Tata Elxsi Ltd",
+    name: "Tata Elxsi Limited",
     category: "IT",
+    industry: "Information Technology",
     description: "Tata Group premium design & tech firm, high beta, leader in Autonomous EV & GenAI.",
     basePrice: 7100.0,
     currentPrice: 7100.0,
@@ -97,8 +204,9 @@ export const INITIAL_ASSETS: Record<AssetId, Asset> = {
   },
   COLPAL: {
     id: "COLPAL",
-    name: "Colgate-Palmolive (India)",
+    name: "Colgate-Palmolive (India) Limited",
     category: "FMCG",
+    industry: "Fast-Moving Consumer Goods",
     description: "Oral care staple with 50%+ market share. Defensive fortress, resilient pricing power.",
     basePrice: 3100.0,
     currentPrice: 3100.0,
@@ -112,8 +220,9 @@ export const INITIAL_ASSETS: Record<AssetId, Asset> = {
   },
   PGHH: {
     id: "PGHH",
-    name: "P&G Hygiene & Health Care",
+    name: "Procter & Gamble Hygiene and Health Care Limited",
     category: "FMCG",
+    industry: "Fast-Moving Consumer Goods",
     description: "Premium healthcare and feminine hygiene giant (Whisper, Vicks), low float, steady compounder.",
     basePrice: 15800.0,
     currentPrice: 15800.0,
@@ -127,8 +236,9 @@ export const INITIAL_ASSETS: Record<AssetId, Asset> = {
   },
   RADICO: {
     id: "RADICO",
-    name: "Radico Khaitan Ltd",
+    name: "Radico Khaitan Limited",
     category: "FMCG",
+    industry: "Fast-Moving Consumer Goods",
     description: "Fastest-growing Indian spirits and alco-bev maker (Magic Moments, Rampur), high retail momentum.",
     basePrice: 2150.0,
     currentPrice: 2150.0,
@@ -142,8 +252,9 @@ export const INITIAL_ASSETS: Record<AssetId, Asset> = {
   },
   UBL: {
     id: "UBL",
-    name: "United Breweries Ltd",
+    name: "United Breweries Limited",
     category: "FMCG",
+    industry: "Fast-Moving Consumer Goods",
     description: "Kingfisher brewer, Heineken group subsidiary, summer seasonal demand play.",
     basePrice: 1950.0,
     currentPrice: 1950.0,
@@ -157,8 +268,9 @@ export const INITIAL_ASSETS: Record<AssetId, Asset> = {
   },
   GILLETTE: {
     id: "GILLETTE",
-    name: "Gillette India Ltd",
+    name: "Gillette India Limited",
     category: "FMCG",
+    industry: "Fast-Moving Consumer Goods",
     description: "Dominant razor & shaving care franchise, debt-free, predictable FMCG cash conversion.",
     basePrice: 8400.0,
     currentPrice: 8400.0,

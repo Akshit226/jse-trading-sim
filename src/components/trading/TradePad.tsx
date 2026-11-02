@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Asset, AssetId, PlayerPortfolio, RoomState, TradeOrder } from "@/types/trading";
 import { sounds } from "@/lib/audio";
-import { formatINR, DESK_METADATA } from "@/lib/constants";
+import { formatINR, DESK_METADATA, getCompanyIndustry, getCompanySubSector } from "@/lib/constants";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -111,13 +111,21 @@ export const TradePad: React.FC<TradePadProps> = ({
 
       {/* Header: Asset Name & Quick Context */}
       <div className="flex items-center justify-between pb-3 border-b border-borderSubtle">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-white font-mono">{asset.id}</span>
-          <span className="text-xs text-neutralMuted truncate max-w-[120px] sm:max-w-none">
-            {asset.name}
-          </span>
+        <div className="min-w-0 pr-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-sm font-bold text-white tracking-tight">{asset.name}</span>
+            <span className="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-surface-subtle border border-borderSubtle text-neutralMuted shrink-0">
+              {asset.id}
+            </span>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent-subtle text-accent border border-accent/20 shrink-0">
+              {getCompanyIndustry(asset.id)}
+            </span>
+          </div>
+          <div className="text-[11px] text-neutralMuted font-mono mt-0.5">
+            {getCompanySubSector(asset.id)}
+          </div>
         </div>
-        <div className="text-right">
+        <div className="text-right shrink-0">
           <span className="text-sm font-bold font-mono text-white tabular-nums">
             {formatINR(currentPrice)}
           </span>

@@ -13,7 +13,7 @@ import { PriceChart } from "@/components/trading/PriceChart";
 import { LiveLeaderboard } from "@/components/shared/LiveLeaderboard";
 import { SentimentMeter } from "@/components/trading/SentimentMeter";
 import { BreakingNewsBanner } from "@/components/shared/BreakingNewsBanner";
-import { formatINR } from "@/lib/constants";
+import { formatINR, getCompanyIndustry, getCompanySubSector } from "@/lib/constants";
 import { QRCodeSVG } from "qrcode.react";
 import confetti from "canvas-confetti";
 import {
@@ -171,17 +171,21 @@ export default function ProjectorDisplayPage() {
                   : "bg-surface border-borderSubtle hover:border-borderStrong"
               }`}
             >
-              <div className="text-neutralMuted text-[10px] font-bold">{aid}</div>
-              <div className="text-xs font-bold text-white mt-0.5 truncate tabular-nums">
-                {formatINR(a.currentPrice)}
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-white font-mono text-[10px] font-bold">{aid}</span>
+                <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-surface-subtle border border-borderSubtle text-accent">
+                  {a.category}
+                </span>
               </div>
-              <div
-                className={`text-[10px] font-bold tabular-nums ${
-                  isPos ? "text-gain" : "text-loss"
-                }`}
-              >
-                {isPos ? "+" : ""}
-                {a.changePercent.toFixed(1)}%
+              <div className="text-[11px] font-bold text-white truncate max-w-full mt-1">
+                {a.name}
+              </div>
+              <div className="flex items-center justify-between text-xs font-mono font-bold mt-1">
+                <span className="text-white tabular-nums">{formatINR(a.currentPrice)}</span>
+                <span className={`text-[10px] tabular-nums ${isPos ? "text-gain" : "text-loss"}`}>
+                  {isPos ? "+" : ""}
+                  {a.changePercent.toFixed(1)}%
+                </span>
               </div>
             </button>
           );
@@ -260,14 +264,17 @@ export default function ProjectorDisplayPage() {
               <div className="card-surface p-5 space-y-3">
                 <div className="flex items-center justify-between pb-3 border-b border-borderSubtle">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-xl font-bold text-white tracking-tight">{selectedAsset.name}</h2>
-                      <span className="text-xs px-2 py-0.5 rounded bg-surface-subtle border border-borderSubtle font-mono text-neutralMuted">
+                      <span className="text-xs px-2 py-0.5 rounded bg-surface-subtle border border-borderSubtle font-mono text-neutralMuted font-bold">
                         {selectedAsset.id}
                       </span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-accent-subtle text-accent border border-accent/20 font-mono">
+                        {getCompanyIndustry(selectedAsset.id)}
+                      </span>
                     </div>
-                    <div className="text-xs text-neutralMuted font-mono mt-0.5">
-                      NSE Real-Time • Category: {selectedAsset.category}
+                    <div className="text-xs text-neutralMuted font-mono mt-1">
+                      NSE Real-Time Equities • {getCompanySubSector(selectedAsset.id)}
                     </div>
                   </div>
 

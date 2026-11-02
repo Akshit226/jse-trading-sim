@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { Asset } from "@/types/trading";
-import { formatINR } from "@/lib/constants";
+import { formatINR, getCompanyIndustry, getCompanySubSector } from "@/lib/constants";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface PriceChartProps {
@@ -66,15 +66,18 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       {!hideHeader && (
         <div className="flex items-center justify-between mb-3">
           <div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold tracking-tight text-white font-mono">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-lg font-bold tracking-tight text-white">
+                {asset.name}
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded bg-surface-subtle text-neutralMuted border border-borderSubtle font-mono font-bold">
                 {asset.id}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded bg-surface-subtle text-neutralMuted border border-borderSubtle">
-                {asset.category}
+              <span className="text-xs px-2 py-0.5 rounded bg-accent-subtle text-accent border border-accent/20 font-mono">
+                {getCompanyIndustry(asset.id)}
               </span>
             </div>
-            <p className="text-xs text-neutralMuted mt-0.5">{asset.name}</p>
+            <p className="text-xs text-neutralMuted mt-0.5 font-mono">{getCompanySubSector(asset.id)}</p>
           </div>
 
           <div className="text-right">

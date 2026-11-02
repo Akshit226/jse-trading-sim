@@ -2,7 +2,7 @@
 
 import React from "react";
 import { AssetId, PlayerPortfolio, RoomState } from "@/types/trading";
-import { DESK_METADATA, formatINR } from "@/lib/constants";
+import { DESK_METADATA, formatINR, getCompanyFullName, getCompanyIndustry } from "@/lib/constants";
 import { TrendingUp, TrendingDown, Wallet, PieChart } from "lucide-react";
 
 interface PortfolioCardProps {
@@ -95,25 +95,38 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ player, room }) =>
             All cash • No stock positions
           </div>
         ) : (
-          <div className="space-y-1 max-h-[140px] overflow-y-auto pr-1">
-            {holdings.map((h) => (
-              <div
-                key={h.aid}
-                className="p-2 rounded bg-surface-subtle border border-borderSubtle flex items-center justify-between text-xs font-mono"
-              >
-                <div>
-                  <span className="font-bold text-white">{h.aid}</span>
-                  <span className="text-[10px] text-neutralMuted ml-1.5">
-                    {h.qty} shares
-                  </span>
+          <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+            {holdings.map((h) => {
+              const companyName = h.asset?.name || getCompanyFullName(h.aid);
+              const industry = getCompanyIndustry(h.aid);
+              return (
+                <div
+                  key={h.aid}
+                  className="p-2.5 rounded bg-surface-subtle border border-borderSubtle flex items-center justify-between text-xs hover:border-borderStrong transition-colors"
+                >
+                  <div className="min-w-0 pr-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-white text-xs truncate max-w-[130px] font-sans">
+                        {companyName}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold px-1 py-0.2 rounded bg-surface border border-borderSubtle text-neutralMuted shrink-0">
+                        {h.aid}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-accent font-mono flex items-center gap-1 mt-0.5">
+                      <span>{industry}</span>
+                      <span className="text-neutralMuted">•</span>
+                      <span className="text-neutralMuted">{h.qty} shs</span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-white font-mono font-bold tabular-nums">
+                      {formatINR(h.value)}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-white font-semibold tabular-nums">
-                    {formatINR(h.value)}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

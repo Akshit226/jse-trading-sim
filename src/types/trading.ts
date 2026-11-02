@@ -27,6 +27,7 @@ export interface Asset {
   id: AssetId;
   name: string;
   category: "IT" | "FMCG";
+  industry?: string;
   description: string;
   currentPrice: number;
   basePrice: number;

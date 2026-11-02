@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { NewsEvent } from "@/types/trading";
+import { getCompanyFullName, getCompanyIndustry } from "@/lib/constants";
 import { sounds } from "@/lib/audio";
 import { newsSpeaker } from "@/lib/voice/newsSpeaker";
 import { X, ChevronRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
@@ -120,9 +121,17 @@ export const BreakingNewsBanner: React.FC<BreakingNewsBannerProps> = ({ news, on
 
             {/* Impact Details */}
             <div className="p-3 rounded-ui bg-surface-subtle border border-borderSubtle space-y-1 font-mono text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-neutralMuted">Target Sector / Equities:</span>
-                <span className="font-bold text-white">{news.affectedAsset}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-neutralMuted shrink-0">Target Sector / Equities:</span>
+                <span className="font-bold text-white text-right truncate">
+                  {news.affectedAsset === "ALL"
+                    ? "Broad Market Index (All Equities)"
+                    : news.affectedAsset === "IT"
+                    ? "Information Technology Basket"
+                    : news.affectedAsset === "FMCG"
+                    ? "Fast-Moving Consumer Goods Basket"
+                    : `${getCompanyFullName(news.affectedAsset)} (${news.affectedAsset}) • ${getCompanyIndustry(news.affectedAsset)}`}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-neutralMuted">Expected Volatility Shift:</span>

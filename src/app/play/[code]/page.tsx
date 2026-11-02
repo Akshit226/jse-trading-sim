@@ -14,6 +14,9 @@ import {
   DESK_METADATA,
   DESK_STARTING_PORTFOLIOS,
   formatINR,
+  getCompanyFullName,
+  getCompanyIndustry,
+  getCompanySubSector,
 } from "@/lib/constants";
 import {
   joinPlayer,
@@ -229,12 +232,24 @@ function PlayRoomContent() {
                       : "bg-surface border-borderSubtle hover:border-borderStrong"
                   }`}
                 >
-                  <div>
-                    <div className="font-bold text-sm text-white font-mono">{aid}</div>
-                    <div className="text-xs text-neutralMuted">{a.name}</div>
+                  <div className="min-w-0 pr-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-sm text-white tracking-tight">{a.name}</span>
+                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-surface-subtle border border-borderSubtle text-neutralMuted shrink-0">
+                        {aid}
+                      </span>
+                    </div>
+                    <div className="text-xs text-neutralMuted flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent-subtle text-accent border border-accent/20 shrink-0">
+                        {getCompanyIndustry(aid)}
+                      </span>
+                      <span className="text-[11px] text-neutralMuted truncate font-mono">
+                        {getCompanySubSector(aid)}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <div className="text-sm font-bold font-mono text-white tabular-nums">
                       {formatINR(a.currentPrice)}
                     </div>
@@ -262,17 +277,17 @@ function PlayRoomContent() {
             <select
               value={selectedAssetId}
               onChange={(e) => setSelectedAssetId(e.target.value as AssetId)}
-              className="min-h-touch bg-surface border border-borderSubtle focus:border-borderFocus rounded-ui px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none flex-1"
+              className="min-h-touch bg-surface border border-borderSubtle focus:border-borderFocus rounded-ui px-3 py-2 text-xs sm:text-sm text-white font-mono font-bold focus:outline-none flex-1 truncate"
             >
               {(Object.keys(room.assets) as AssetId[]).map((aid) => (
                 <option key={aid} value={aid}>
-                  {aid} — {formatINR(room.assets[aid].currentPrice)}
+                  {room.assets[aid].name} ({aid}) • {getCompanyIndustry(aid)} — {formatINR(room.assets[aid].currentPrice)}
                 </option>
               ))}
             </select>
 
-            <span className="px-2.5 py-1.5 rounded-ui bg-surface-subtle border border-borderSubtle text-xs font-mono text-neutralMuted">
-              {selectedAsset.category}
+            <span className="px-2.5 py-1.5 rounded-ui bg-accent-subtle border border-accent/20 text-xs font-mono text-accent shrink-0">
+              {getCompanyIndustry(selectedAssetId)}
             </span>
           </div>
 
@@ -345,13 +360,21 @@ function PlayRoomContent() {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end">
           <div className="bg-surface border-t border-borderSubtle rounded-t-2xl p-4 max-h-[85vh] overflow-y-auto motion-sheet-enter space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-borderSubtle">
-              <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                Order Ticket: {selectedAssetId}
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap min-w-0 pr-2">
+                <span className="text-xs font-bold text-white tracking-tight">
+                  {selectedAsset.name}
+                </span>
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-surface-subtle border border-borderSubtle text-neutralMuted">
+                  {selectedAssetId}
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent-subtle text-accent border border-accent/20">
+                  {getCompanyIndustry(selectedAssetId)}
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowMobileTradeSheet(false)}
-                className="p-1 rounded text-neutralMuted hover:text-white"
+                className="p-1 rounded text-neutralMuted hover:text-white shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -466,9 +489,18 @@ function PlayRoomContent() {
                       : "bg-surface-subtle border-borderSubtle hover:border-borderStrong"
                   }`}
                 >
-                  <div>
-                    <div className="font-bold text-white font-mono">{aid}</div>
-                    <div className="text-[10px] text-neutralMuted">{a.category}</div>
+                  <div className="min-w-0 pr-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-white text-xs truncate max-w-[130px] font-sans">
+                        {a.name}
+                      </span>
+                      <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-surface border border-borderSubtle text-neutralMuted shrink-0">
+                        {aid}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-accent truncate mt-0.5 font-mono">
+                      {getCompanyIndustry(aid)}
+                    </div>
                   </div>
 
                   <div className="text-right">
@@ -503,14 +535,17 @@ function PlayRoomContent() {
           <div className="card-surface p-5 space-y-3">
             <div className="flex items-center justify-between pb-3 border-b border-borderSubtle">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-lg font-bold text-white tracking-tight">{selectedAsset.name}</h2>
-                  <span className="text-xs px-2 py-0.5 rounded bg-surface-subtle border border-borderSubtle font-mono text-neutralMuted">
+                  <span className="text-xs px-2 py-0.5 rounded bg-surface-subtle border border-borderSubtle font-mono text-neutralMuted font-bold">
                     {selectedAsset.id}
                   </span>
+                  <span className="text-xs px-2 py-0.5 rounded bg-accent-subtle text-accent border border-accent/20 font-mono">
+                    {getCompanyIndustry(selectedAsset.id)}
+                  </span>
                 </div>
-                <div className="text-xs text-neutralMuted font-mono mt-0.5">
-                  NSE Real-Time • Sector: {selectedAsset.category}
+                <div className="text-xs text-neutralMuted font-mono mt-1">
+                  NSE Real-Time • {getCompanySubSector(selectedAsset.id)}
                 </div>
               </div>
 
