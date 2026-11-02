@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "node --import tsx/esm --test src/tests/**/*.test.ts",
+    "test:load": "node scripts/load-test-sim.mjs http://localhost:3000 40 4",
+    "test:load:prod": "node scripts/load-test-sim.mjs https://jse-trading-sim.vercel.app 40 4",
     "emulator": "firebase-tools emulators:start --only database"
   },
   "dependencies": {
