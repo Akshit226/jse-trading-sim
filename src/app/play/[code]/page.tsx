@@ -33,7 +33,6 @@ import { TradePad } from "@/components/trading/TradePad";
 import { PortfolioCard } from "@/components/trading/PortfolioCard";
 import { SentimentMeter } from "@/components/trading/SentimentMeter";
 import { BreakingNewsBanner } from "@/components/shared/BreakingNewsBanner";
-import { LiveLeaderboard } from "@/components/shared/LiveLeaderboard";
 import { sounds } from "@/lib/audio";
 import { newsSpeaker } from "@/lib/voice/newsSpeaker";
 import {
@@ -41,7 +40,6 @@ import {
   TrendingDown,
   Volume2,
   VolumeX,
-  Trophy,
   Activity,
   Smartphone,
   Monitor,
@@ -69,7 +67,7 @@ function PlayRoomContent() {
   const [fallbackPlayer, setFallbackPlayer] = useState<PlayerPortfolio | null>(null);
 
   // Mobile Bottom Tab: Market | Trade | Portfolio | Leaderboard | News
-  const [mobileTab, setMobileTab] = useState<"market" | "trade" | "portfolio" | "leaderboard" | "news">("trade");
+  const [mobileTab, setMobileTab] = useState<"market" | "trade" | "portfolio" | "news">("trade");
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId>("COFORGE");
   const [viewMode, setViewMode] = useState<"responsive" | "web" | "app">("responsive");
 
@@ -376,18 +374,18 @@ function PlayRoomContent() {
       {/* TAB 3: PORTFOLIO */}
       {mobileTab === "portfolio" && (
         <div className="space-y-4 motion-view-enter">
-          <PortfolioCard player={currentPlayer} room={room} />
+          <PortfolioCard
+            player={currentPlayer}
+            room={room}
+            onSelectAsset={(aid) => {
+              setSelectedAssetId(aid);
+              setMobileTab("trade");
+            }}
+          />
         </div>
       )}
 
-      {/* TAB 4: LEADERBOARD */}
-      {mobileTab === "leaderboard" && (
-        <div className="space-y-4 motion-view-enter">
-          <LiveLeaderboard players={room.players} currentPlayerId={currentPlayer.id} maxDisplay={20} />
-        </div>
-      )}
-
-      {/* TAB 5: NEWS FEED */}
+      {/* TAB 4: NEWS FEED */}
       {mobileTab === "news" && (
         <div className="card-surface p-4 space-y-3 motion-view-enter">
           <div className="flex items-center justify-between pb-2 border-b border-borderSubtle">
@@ -498,17 +496,6 @@ function PlayRoomContent() {
 
         <button
           type="button"
-          onClick={() => setMobileTab("leaderboard")}
-          className={`min-h-touch flex-1 flex flex-col items-center justify-center gap-1 rounded-md transition-colors ${
-            mobileTab === "leaderboard" ? "text-accent font-bold" : "text-neutralMuted hover:text-white"
-          }`}
-        >
-          <Trophy className="w-4 h-4" />
-          <span className="text-[10px]">Ranks</span>
-        </button>
-
-        <button
-          type="button"
           onClick={() => setMobileTab("news")}
           className={`min-h-touch flex-1 flex flex-col items-center justify-center gap-1 rounded-md transition-colors ${
             mobileTab === "news" ? "text-accent font-bold" : "text-neutralMuted hover:text-white"
@@ -590,9 +577,9 @@ function PlayRoomContent() {
       </div>
 
       {/* ------------------------------------------------------------------- */}
-      {/* COLUMN 2 (Center: 6 cols) - Chart & Consolidated Order Ticket       */}
+      {/* COLUMN 2 (Center: 4 cols) - Chart & Consolidated Order Ticket       */}
       {/* ------------------------------------------------------------------- */}
-      <div className="col-span-6 space-y-4">
+      <div className="col-span-4 space-y-4">
         {/* Non-blocking News Catalyst */}
         <BreakingNewsBanner news={room.currentNews} />
 
@@ -646,14 +633,15 @@ function PlayRoomContent() {
       </div>
 
       {/* ------------------------------------------------------------------- */}
-      {/* COLUMN 3 (Right: 3 cols) - Positions, Feed, & Leaderboard           */}
+      {/* COLUMN 3 (Right: 5 cols) - Portfolio, Positions Table & Live Feed   */}
       {/* ------------------------------------------------------------------- */}
-      <div className="col-span-3 space-y-4">
-        {/* Portfolio & Positions */}
-        <PortfolioCard player={currentPlayer} room={room} />
-
-        {/* Live Leaderboard */}
-        <LiveLeaderboard players={room.players} currentPlayerId={currentPlayer.id} maxDisplay={6} />
+      <div className="col-span-5 space-y-4">
+        {/* Portfolio & Active Positions Table */}
+        <PortfolioCard
+          player={currentPlayer}
+          room={room}
+          onSelectAsset={setSelectedAssetId}
+        />
 
         {/* Collapsible Execution Feed */}
         <div className="card-surface p-4 flex flex-col">
