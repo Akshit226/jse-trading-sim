@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { NewsEvent, PlayerPortfolio, RoomState } from "@/types/trading";
+import { NewsEvent, RoomState } from "@/types/trading";
 import {
   advanceRound,
   createInitialRoom,
@@ -18,16 +18,13 @@ import { NewsTriggerModal } from "@/components/host/NewsTriggerModal";
 import { LiveLeaderboard } from "@/components/shared/LiveLeaderboard";
 import { SentimentMeter } from "@/components/trading/SentimentMeter";
 import {
-  ShieldCheck,
-  ExternalLink,
   Download,
-  Users,
   Presentation,
   CheckCircle2,
   Lock,
-  KeyRound,
   ArrowLeft,
-  AlertTriangle,
+  Clock,
+  Layers,
 } from "lucide-react";
 import { formatINR, DEFAULT_TEACHER_PIN } from "@/lib/constants";
 import Link from "next/link";
@@ -42,11 +39,8 @@ export default function HostDashboardPage() {
   const [pinError, setPinError] = useState(false);
 
   useEffect(() => {
-    // Check if session was already authenticated
     const auth = sessionStorage.getItem("jse_teacher_authorized");
-    if (auth === "true") {
-      setIsAuthorized(true);
-    }
+    if (auth === "true") setIsAuthorized(true);
   }, []);
 
   const handleUnlock = (e: React.FormEvent) => {
@@ -67,7 +61,6 @@ export default function HostDashboardPage() {
   };
 
   useEffect(() => {
-    // Initial fetch / creation
     getRoomState(roomCode).then((existing) => {
       if (existing) {
         setRoom(existing);
@@ -127,9 +120,9 @@ export default function HostDashboardPage() {
       "Rank",
       "Name",
       "Desk",
-      "Final Net Worth (INR ₹)",
+      "Final Net Worth (INR)",
       "Return (%)",
-      "Liquid Cash (₹)",
+      "Liquid Cash",
       "Total Trades",
     ];
     const rows = playersList.map((p, idx) => [
@@ -153,81 +146,60 @@ export default function HostDashboardPage() {
     document.body.removeChild(link);
   };
 
+  // LOCKED STATE: PIN Form
   if (!isAuthorized) {
     return (
-      <main className="min-h-screen bg-slate-950 flex flex-col justify-center items-center px-4 py-8 relative overflow-hidden">
-        {/* Ambient lighting */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="max-w-md w-full relative z-10 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md">
-          {/* Logo & Header */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-xl border border-slate-700 mb-3">
-              <img
-                src="/jain-logo.png"
-                alt="Jain University Logo"
-                className="h-10 w-auto object-contain"
-              />
+      <main className="min-h-screen bg-app flex flex-col justify-center items-center px-4 py-8">
+        <div className="max-w-md w-full card-surface p-6 sm:p-8 space-y-5 motion-modal-enter">
+          <div className="text-center space-y-2">
+            <div className="bg-white p-2 rounded-ui shadow-sm inline-flex items-center justify-center">
+              <img src="/jain-logo.png" alt="Jain Logo" className="h-6 w-auto" />
             </div>
-            <div className="inline-flex items-center space-x-1.5 px-3 py-1 bg-purple-950/60 border border-purple-500/30 rounded-full text-purple-300 text-xs font-bold uppercase tracking-wider mb-2">
-              <Lock className="w-3.5 h-3.5 text-purple-400" />
-              <span>Restricted Faculty Cockpit</span>
-            </div>
-            <h1 className="text-2xl font-black text-white tracking-tight">
-              Teacher Command Center
-            </h1>
-            <p className="text-xs text-slate-400 mt-1">
-              Enter the teacher security PIN to manage trading rounds, news shocks, and room states.
-            </p>
+            <h1 className="text-xl font-bold text-white tracking-tight">Faculty Facilitator Access</h1>
+            <p className="text-xs text-neutralMuted">Enter the 4-digit PIN to unlock facilitator controls.</p>
           </div>
 
           <form onSubmit={handleUnlock} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                <span>Faculty Security PIN</span>
-                <span className="text-[10px] text-slate-500 lowercase">(default: 2026)</span>
+              <label className="block text-xs font-bold text-neutralMuted uppercase tracking-wider mb-1 font-mono text-center">
+                Security PIN
               </label>
-              <div className="relative">
-                <input
-                  type="password"
-                  required
-                  autoFocus
-                  placeholder="••••"
-                  value={pinInput}
-                  onChange={(e) => {
-                    setPinInput(e.target.value);
-                    if (pinError) setPinError(false);
-                  }}
-                  className={`w-full bg-slate-950 border ${
-                    pinError ? "border-rose-500 text-rose-300" : "border-slate-700 text-white"
-                  } rounded-xl px-4 py-3 text-center text-lg font-mono tracking-[0.4em] font-black focus:outline-none focus:border-cyan-400`}
-                />
-                <KeyRound className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
+              <input
+                type="password"
+                autoFocus
+                required
+                placeholder="••••"
+                value={pinInput}
+                onChange={(e) => {
+                  setPinInput(e.target.value);
+                  if (pinError) setPinError(false);
+                }}
+                className={`w-full min-h-touch bg-surface-subtle border ${
+                  pinError ? "border-loss text-loss" : "border-borderSubtle text-white"
+                } focus:border-borderFocus rounded-ui px-4 py-2 text-center text-xl font-mono tracking-widest font-bold focus:outline-none`}
+              />
               {pinError && (
-                <div className="flex items-center space-x-1.5 text-rose-400 text-xs font-bold mt-2">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  <span>Access Denied: Incorrect Teacher PIN.</span>
+                <div className="text-xs text-loss font-bold text-center mt-1.5">
+                  Invalid PIN. Default facilitator PIN is 2026.
                 </div>
               )}
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-black text-sm rounded-xl shadow-lg shadow-purple-950/50 flex items-center justify-center space-x-2 transition-all uppercase tracking-wider"
+              className="w-full min-h-touch py-3 bg-accent hover:bg-accent-hover text-white font-bold text-xs uppercase tracking-wider rounded-ui shadow-ui motion-btn-press"
             >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Unlock Market Controls</span>
+              Unlock Console
             </button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-slate-800 text-center">
+          <div className="text-center">
             <Link
               href="/"
-              className="inline-flex items-center space-x-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+              className="text-xs text-neutralMuted hover:text-white flex items-center justify-center gap-1 font-mono"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Return to Student Trading Portal</span>
+              <span>Back to Public Floor</span>
             </Link>
           </div>
         </div>
@@ -235,146 +207,97 @@ export default function HostDashboardPage() {
     );
   }
 
-  if (!room) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-slate-300 font-bold">Initializing Host Dashboard...</div>
-      </div>
-    );
-  }
-
-  const studentCount = Object.keys(room.players || {}).length;
-
+  // UNLOCKED STATE: Full Command Center
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 space-y-6">
-      {/* Host Header */}
-      <header className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4 glass-card rounded-2xl p-4 shadow-xl">
-        <div className="flex items-center space-x-3.5">
-          <div className="p-2 bg-white rounded-xl shadow-lg border border-slate-700 shrink-0">
-            <img
-              src="/jain-logo.png"
-              alt="Jain University Logo"
-              className="h-8 w-auto object-contain"
-            />
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-xl font-black text-white">
-                JSE <span className="text-cyan-400">Faculty Command Terminal</span>
-              </h1>
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-mono font-bold bg-slate-800 text-cyan-400 border border-slate-700">
-                PIN: {room.code}
-              </span>
+    <div className="min-h-screen bg-app text-slate-100 flex flex-col justify-between font-sans">
+      {/* Header */}
+      <header className="border-b border-borderSubtle bg-surface sticky top-0 z-50 px-4 sm:px-6 py-2.5">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="bg-white p-1 rounded-md shrink-0">
+              <img src="/jain-logo.png" alt="Jain Logo" className="h-5 w-auto" />
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Jain University Stock Exchange • Orchestrate rounds, macro catalysts, and student portfolios in ₹ INR.
-            </p>
+            <div>
+              <div className="text-[10px] text-neutralMuted uppercase font-mono font-bold">
+                Facilitator Terminal
+              </div>
+              <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                <span>Room: {roomCode}</span>
+                <span className="text-[10px] font-mono text-gain font-bold px-1.5 py-0.2 rounded bg-gain-subtle border border-gain-border">
+                  VERIFIED
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center space-x-2.5">
-          <a
-            href={`/projector/${room.code}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center space-x-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all"
-          >
-            <Presentation className="w-4 h-4" />
-            <span>Open Projector View</span>
-            <ExternalLink className="w-3.5 h-3.5 ml-1" />
-          </a>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/projector/${roomCode}`}
+              target="_blank"
+              className="min-h-touch px-3 py-1.5 rounded-ui bg-surface-subtle hover:bg-surface border border-borderSubtle text-xs font-bold text-white motion-btn-press flex items-center gap-1.5"
+            >
+              <Presentation className="w-3.5 h-3.5 text-accent" />
+              <span>Projector HUD</span>
+            </Link>
 
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 transition-all"
-          >
-            <Download className="w-4 h-4 text-emerald-400" />
-            <span>Export CSV</span>
-          </button>
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="min-h-touch px-3 py-1.5 rounded-ui bg-surface-subtle hover:bg-surface border border-borderSubtle text-xs font-bold text-white motion-btn-press flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export CSV</span>
+            </button>
 
-          <button
-            onClick={handleLock}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-slate-800/80 hover:bg-rose-950/60 hover:border-rose-500/50 text-slate-400 hover:text-rose-300 font-bold text-xs rounded-xl border border-slate-700 transition-all"
-            title="Lock Console"
-          >
-            <Lock className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Lock Console</span>
-          </button>
+            <button
+              type="button"
+              onClick={handleLock}
+              className="min-h-touch px-3 py-1.5 rounded-ui border border-borderSubtle text-xs font-mono text-neutralMuted hover:text-white"
+            >
+              Lock
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Main Grid */}
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Round Controls */}
-        <RoundControl
-          room={room}
-          onUpdateStatus={handleUpdateStatus}
-          onAdvanceRound={handleAdvanceRound}
-          onSpawnBots={handleSpawnBots}
-          onResetRoom={handleResetRoom}
-        />
-
-        {/* Telemetry Stats Cards (Inspired by View 1) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
-          <div className="glass-card rounded-2xl p-4 flex items-center justify-between shadow-lg">
-            <div>
-              <span className="text-xs text-slate-400 block uppercase font-mono">Live Nodes</span>
-              <span className="text-2xl font-black text-white">{studentCount} <span className="text-xs font-normal text-slate-400">Traders</span></span>
-            </div>
-            <div className="text-right">
-              <span className="text-xs text-emerald-400 font-medium flex items-center justify-end gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Active
-              </span>
-              <span className="text-[11px] text-cyan-400 font-mono mt-0.5 block">
-                Room: {room.code}
-              </span>
-            </div>
-          </div>
-
-          <div className="glass-card rounded-2xl p-4 flex items-center justify-between shadow-lg">
-            <div>
-              <span className="text-xs text-slate-400 block uppercase font-mono">Total Executions</span>
-              <span className="text-2xl font-black text-cyan-400">{(room.recentTrades?.length || 0)}</span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-              <Users className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="glass-card rounded-2xl p-4 flex items-center justify-between shadow-lg">
-            <div>
-              <span className="text-xs text-slate-400 block uppercase font-mono">Market Session</span>
-              <span className="text-xl font-black text-emerald-400">
-                {room.status === "ACTIVE" ? "TRADING LIVE" : room.status === "PAUSED" ? "HALTED" : "LOBBY"}
-              </span>
-            </div>
-            <div className="text-right text-xs text-slate-400 font-mono">
-              <div>Round {room.currentRound} / {room.totalRounds}</div>
-              <div className="text-[11px] text-amber-400">₹10 Lakh Base</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Sentiment Meter */}
-        <SentimentMeter recentTrades={room.recentTrades} />
-
-        {/* News Trigger Panel & Live Standings */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <NewsTriggerModal
-              currentRound={room.currentRound}
-              onTriggerNews={handleTriggerNews}
+      {/* Main Body */}
+      <main className="max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 flex-1">
+        {room && (
+          <>
+            {/* Round Controls */}
+            <RoundControl
+              room={room}
+              onUpdateStatus={handleUpdateStatus}
+              onAdvanceRound={handleAdvanceRound}
+              onSpawnBots={handleSpawnBots}
+              onResetRoom={handleResetRoom}
             />
-          </div>
 
-          <div className="space-y-4">
-            <LiveLeaderboard
-              players={room.players}
-              maxDisplay={15}
-            />
-          </div>
-        </div>
-      </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* News Catalyst Dispatcher (7 cols) */}
+              <div className="lg:col-span-7">
+                <NewsTriggerModal
+                  currentRound={room.currentRound}
+                  onTriggerNews={handleTriggerNews}
+                />
+              </div>
+
+              {/* Leaderboard & Floor Sentiment (5 cols) */}
+              <div className="lg:col-span-5 space-y-4">
+                <LiveLeaderboard
+                  players={room.players}
+                  maxDisplay={15}
+                />
+                <SentimentMeter recentTrades={room.recentTrades} />
+              </div>
+            </div>
+          </>
+        )}
+      </main>
+
+      <footer className="w-full text-center text-[11px] text-neutralMuted font-mono py-3 border-t border-borderSubtle">
+        Jain (Deemed-to-be University) • CMS Bengaluru • Facilitator Console
+      </footer>
     </div>
   );
 }

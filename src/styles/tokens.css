@@ -1,0 +1,56 @@
+/* ==========================================================================
+   JSE DESIGN TOKENS (Strict Single Source of Truth)
+   Theme: Dark Near-Black Navy | Spacing: 4/8/12/16/24/32/48 | Radius: 12px
+   ========================================================================== */
+
+:root {
+  /* Surfaces & Backgrounds */
+  --bg-app: #0B0F17;              /* Near-black navy canvas */
+  --bg-surface: #121826;          /* Primary card and panel surface */
+  --bg-surface-elevated: #162033; /* Hovered / secondary card surface */
+  --bg-surface-subtle: #0E1420;   /* Recessed backgrounds, inputs, table heads */
+
+  /* Borders & Dividers */
+  --border-subtle: rgba(255, 255, 255, 0.08); /* 1px boundary everywhere */
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-focus: #3B82F6;                     /* High-visibility active focus ring */
+
+  /* Single Brand Accent (Used ONLY for Primary CTAs & Active States) */
+  --accent-primary: #2563EB;      /* Institutional Cobalt Blue */
+  --accent-hover: #1D4ED8;
+  --accent-active: #1E40AF;
+  --accent-subtle: rgba(37, 99, 235, 0.12);
+
+  /* Semantic State Colors */
+  --color-gain: #22C55E;          /* Up / Buy / Positive P&L */
+  --color-gain-subtle: rgba(34, 197, 94, 0.12);
+  --color-gain-border: rgba(34, 197, 94, 0.25);
+
+  --color-loss: #EF4444;          /* Down / Sell / Negative P&L */
+  --color-loss-subtle: rgba(239, 68, 68, 0.12);
+  --color-loss-border: rgba(239, 68, 68, 0.25);
+
+  --color-neutral: #94A3B8;       /* Secondary labels & inactive states */
+  --color-warning: #F59E0B;       /* News catalyst / alert */
+  --color-warning-subtle: rgba(245, 158, 11, 0.12);
+
+  /* Typography Scale (Strictly Max 3 Sizes per Screen, Max 2 Weights: Regular 400 & Bold 700) */
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* Strict Unified Radius & Elevation */
+  --radius-ui: 12px;
+  --shadow-ui: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+
+  /* Touch Target */
+  --min-touch-target: 44px;
+}

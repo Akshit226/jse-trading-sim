@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { AssetId, NewsEvent, NewsSentiment } from "@/types/trading";
 import { PRESET_NEWS_SCENARIOS } from "@/lib/engine/newsScenarios";
-import { Sparkles, Send, AlertTriangle, TrendingUp, TrendingDown, Radio } from "lucide-react";
+import { Radio, Send, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 interface NewsTriggerModalProps {
   currentRound: number;
@@ -45,19 +45,20 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl">
-      <div className="flex items-center space-x-2 mb-4 pb-2 border-b border-slate-800">
-        <Radio className="w-5 h-5 text-rose-500 animate-pulse" />
-        <h3 className="text-base font-black text-white tracking-wide uppercase">
-          News & Sentiment Shock Palette
+    <div className="card-surface p-5 space-y-5">
+      <div className="flex items-center gap-2 pb-3 border-b border-borderSubtle">
+        <Radio className="w-4 h-4 text-accent" />
+        <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+          News Catalyst & Shock Dispatcher
         </h3>
       </div>
 
       {/* Preset Curated Scenarios */}
-      <div className="mb-6">
-        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-          Curated Indian Stock Market Scenarios (Round {currentRound})
+      <div className="space-y-2">
+        <div className="text-xs font-bold text-neutralMuted uppercase tracking-wider font-mono">
+          Curated Catalysts (Round {currentRound})
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {PRESET_NEWS_SCENARIOS.map((preset) => {
             const isBullish = preset.sentiment.includes("bullish");
@@ -66,42 +67,43 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
             return (
               <div
                 key={preset.id}
-                className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-col justify-between hover:border-slate-700 transition-all"
+                className="bg-surface-subtle border border-borderSubtle rounded-ui p-3.5 flex flex-col justify-between hover:border-borderStrong transition-colors"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+                  <div className="flex items-center justify-between mb-1.5 font-mono text-[10px]">
+                    <span className="font-bold text-neutralMuted uppercase px-1.5 py-0.2 rounded bg-surface border border-borderSubtle">
                       R{preset.round} • {preset.affectedAsset}
                     </span>
                     <span
-                      className={`text-xs font-black font-mono flex items-center ${
-                        isBullish
-                          ? "text-emerald-400"
-                          : isBearish
-                          ? "text-rose-400"
-                          : "text-amber-400"
+                      className={`font-bold flex items-center tabular-nums ${
+                        isBullish ? "text-gain" : isBearish ? "text-loss" : "text-neutralMuted"
                       }`}
                     >
-                      {preset.priceImpact > 0 ? "+" : ""}
+                      {isBullish ? (
+                        <ArrowUpRight className="w-3 h-3 mr-0.5" />
+                      ) : isBearish ? (
+                        <ArrowDownRight className="w-3 h-3 mr-0.5" />
+                      ) : null}
+                      {preset.priceImpact >= 0 ? "+" : ""}
                       {(preset.priceImpact * 100).toFixed(0)}%
                     </span>
                   </div>
-                  <h4 className="text-xs font-bold text-white line-clamp-1">{preset.title}</h4>
-                  <p className="text-[11px] text-slate-400 line-clamp-2 mt-0.5">
+
+                  <div className="text-xs font-bold text-white leading-snug">
+                    {preset.title}
+                  </div>
+                  <p className="text-[11px] text-neutralMuted mt-1 line-clamp-2 leading-relaxed">
                     {preset.description}
                   </p>
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => handleTriggerPreset(preset)}
-                  className={`mt-2.5 py-1.5 px-3 rounded-lg text-xs font-black flex items-center justify-center space-x-1.5 transition-all ${
-                    isBearish
-                      ? "bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-800/60"
-                      : "bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-800/60"
-                  }`}
+                  className="mt-3 w-full min-h-touch py-1.5 px-3 bg-surface hover:bg-surface-elevated border border-borderSubtle hover:border-borderStrong rounded-ui text-xs font-bold text-white motion-btn-press flex items-center justify-center gap-1.5"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>TRIGGER SHOCK</span>
+                  <Send className="w-3 h-3 text-accent" />
+                  <span>Broadcast Shock</span>
                 </button>
               </div>
             );
@@ -109,94 +111,50 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
         </div>
       </div>
 
-      {/* Custom Headline Creator */}
-      <div className="bg-slate-950 border border-slate-800 rounded-xl p-4">
-        <div className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2.5 flex items-center space-x-1.5">
-          <Send className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Broadcast Custom Classroom Headline</span>
+      {/* Custom Scenario Builder */}
+      <div className="pt-3 border-t border-borderSubtle space-y-3">
+        <div className="text-xs font-bold text-neutralMuted uppercase tracking-wider font-mono">
+          Custom Live Catalyst
         </div>
 
-        <div className="space-y-3">
-          <input
-            type="text"
-            placeholder="Headline (e.g. 'FII block purchase triggers 10% upper circuit on Coforge!')"
-            value={customTitle}
-            onChange={(e) => setCustomTitle(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-          />
-
-          <input
-            type="text"
-            placeholder="Brief story / market rationale..."
-            value={customDesc}
-            onChange={(e) => setCustomDesc(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-          />
-
-          <div className="grid grid-cols-3 gap-2.5">
-            <div>
-              <label className="text-[10px] text-slate-400 font-bold block mb-1 uppercase tracking-wider">
-                Affected Ticker
-              </label>
-              <select
-                value={customAsset}
-                onChange={(e) => setCustomAsset(e.target.value as any)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400"
-              >
-                <option value="MPHASIS">MPHASIS (Mphasis)</option>
-                <option value="COFORGE">COFORGE (Coforge)</option>
-                <option value="OFSS">OFSS (Oracle Financial)</option>
-                <option value="LTTS">LTTS (L&T Tech)</option>
-                <option value="TATAELXSI">TATAELXSI (Tata Elxsi)</option>
-                <option value="COLPAL">COLPAL (Colgate)</option>
-                <option value="PGHH">PGHH (P&G Hygiene)</option>
-                <option value="RADICO">RADICO (Radico Khaitan)</option>
-                <option value="UBL">UBL (United Breweries)</option>
-                <option value="GILLETTE">GILLETTE (Gillette)</option>
-                <option value="IT">IT (All IT Stocks)</option>
-                <option value="FMCG">FMCG (All FMCG Stocks)</option>
-                <option value="ALL">ALL (Market-Wide)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[10px] text-slate-400 font-bold block mb-1 uppercase tracking-wider">
-                Price Impact (%)
-              </label>
-              <input
-                type="number"
-                value={customImpact}
-                onChange={(e) => setCustomImpact(parseInt(e.target.value) || 0)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] text-slate-400 font-bold block mb-1 uppercase tracking-wider">
-                Sentiment
-              </label>
-              <select
-                value={customSentiment}
-                onChange={(e) => setCustomSentiment(e.target.value as NewsSentiment)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400"
-              >
-                <option value="strongly_bullish">Strongly Bullish</option>
-                <option value="bullish">Bullish</option>
-                <option value="neutral">Neutral</option>
-                <option value="bearish">Bearish</option>
-                <option value="strongly_bearish">Strongly Bearish</option>
-              </select>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div>
+            <label className="block text-[11px] text-neutralMuted mb-1 font-mono">Headline</label>
+            <input
+              type="text"
+              placeholder="e.g. Unscheduled SEBI algorithmic inquiry"
+              value={customTitle}
+              onChange={(e) => setCustomTitle(e.target.value)}
+              className="w-full bg-surface-subtle border border-borderSubtle focus:border-borderFocus rounded-ui px-3 py-2 text-white text-xs focus:outline-none"
+            />
           </div>
 
-          <button
-            onClick={handleTriggerCustom}
-            disabled={!customTitle.trim()}
-            className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all uppercase tracking-wider"
-          >
-            Broadcast to All Screens & Audio Speaker
-          </button>
+          <div>
+            <label className="block text-[11px] text-neutralMuted mb-1 font-mono">Target Asset</label>
+            <select
+              value={customAsset}
+              onChange={(e) => setCustomAsset(e.target.value as any)}
+              className="w-full bg-surface-subtle border border-borderSubtle focus:border-borderFocus rounded-ui px-3 py-2 text-white text-xs font-mono focus:outline-none"
+            >
+              <option value="ALL">ALL — Broad Market Index</option>
+              <option value="IT">IT — Sector Basket</option>
+              <option value="FMCG">FMCG — Staples Basket</option>
+              <option value="COFORGE">COFORGE</option>
+              <option value="MPHASIS">MPHASIS</option>
+              <option value="OFSS">OFSS</option>
+              <option value="COLPAL">COLPAL</option>
+            </select>
+          </div>
         </div>
+
+        <button
+          type="button"
+          onClick={handleTriggerCustom}
+          disabled={!customTitle.trim()}
+          className="w-full min-h-touch py-2 bg-accent hover:bg-accent-hover text-white font-bold text-xs uppercase tracking-wider rounded-ui motion-btn-press disabled:opacity-30 disabled:pointer-events-none"
+        >
+          Inject Custom Market Shock
+        </button>
       </div>
     </div>
   );

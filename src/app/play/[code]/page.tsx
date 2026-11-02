@@ -41,12 +41,13 @@ import {
   Layers,
   ArrowUp,
   ArrowDown,
-  Megaphone,
-  Sparkles,
-  PieChart,
   Clock,
   ArrowUpRight,
   ArrowDownRight,
+  Radio,
+  X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 function PlayRoomContent() {
@@ -57,11 +58,37 @@ function PlayRoomContent() {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [playerId, setPlayerId] = useState<string>("");
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [activeTab, setActiveTab] = useState<"trade" | "portfolio" | "leaderboard" | "markets">("trade");
+
+  // Mobile Bottom Tab: Market | Trade | Portfolio | Leaderboard | News
+  const [mobileTab, setMobileTab] = useState<"market" | "trade" | "portfolio" | "leaderboard" | "news">("trade");
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId>("COFORGE");
-  const [mobileLot, setMobileLot] = useState<number>(50);
-  const [mobileOrderLoading, setMobileOrderLoading] = useState(false);
   const [viewMode, setViewMode] = useState<"responsive" | "web" | "app">("responsive");
+
+  // Mobile Bottom Sheet toggle
+  const [showMobileTradeSheet, setShowMobileTradeSheet] = useState(false);
+
+  // Collapsible panels in desktop right col
+  const [showFeed, setShowFeed] = useState(true);
+
+  // Dynamic Clock
+  const [clockTime, setClockTime] = useState("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      const d = new Date();
+      setClockTime(
+        d.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        })
+      );
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Initialize or fetch student identity
   useEffect(() => {
@@ -122,10 +149,10 @@ function PlayRoomContent() {
     const unsubscribe = subscribeToRoom(roomCode, (updatedRoom) => {
       setRoom(updatedRoom);
     });
-
     return () => unsubscribe();
   }, [roomCode]);
 
+  // Toggle sound
   const toggleSound = () => {
     const next = !soundEnabled;
     setSoundEnabled(next);
@@ -133,549 +160,128 @@ function PlayRoomContent() {
     newsSpeaker.setEnabled(next);
   };
 
+  // Get current player portfolio
   const currentPlayer = useMemo(() => {
     if (!room || !playerId) return null;
-    if (room.players[playerId]) return room.players[playerId];
-
-    const name = localStorage.getItem("trading_sim_player_name") || "Student Trader";
-    const desk = (localStorage.getItem("trading_sim_player_desk") as StudentDesk) || "tech_analyst";
-    const deskSetup = DESK_STARTING_PORTFOLIOS[desk] || {
-      cash: STARTING_CASH,
-      shares: {
-        MPHASIS: 0,
-        COFORGE: 0,
-        OFSS: 0,
-        LTTS: 0,
-        TATAELXSI: 0,
-        COLPAL: 0,
-        PGHH: 0,
-        RADICO: 0,
-        UBL: 0,
-        GILLETTE: 0,
-      },
-    };
-
-    return {
-      id: playerId,
-      name,
-      desk,
-      cash: deskSetup.cash,
-      shares: { ...deskSetup.shares },
-      totalNetWorth: STARTING_CASH,
-      initialNetWorth: STARTING_CASH,
-      returnPercent: 0,
-      totalTrades: 0,
-      realizedPnL: 0,
-      rank: Object.keys(room.players || {}).length + 1,
-      lastActive: Date.now(),
-    };
+    return room.players?.[playerId] || null;
   }, [room, playerId]);
 
+  // Handle Trade Execution
   const handleExecuteTrade = async (order: TradeOrder) => {
-    return await submitOrder(roomCode, order);
-  };
-
-  // Quick 1-tap trade for mobile interface
-  const handleQuickMobileTrade = async (side: "BUY" | "SELL") => {
-    if (!room || !currentPlayer || !selectedAsset) return;
-    setMobileOrderLoading(true);
-
-    const order: TradeOrder = {
-      id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      playerId: currentPlayer.id,
-      playerName: currentPlayer.name,
-      desk: currentPlayer.desk,
-      assetId: selectedAssetId,
-      side,
-      quantity: mobileLot,
-      price: selectedAsset.currentPrice,
-      timestamp: Date.now(),
-      total: Number((mobileLot * selectedAsset.currentPrice).toFixed(2)),
-    };
-
     const res = await submitOrder(roomCode, order);
-    setMobileOrderLoading(false);
-    if (res.success) {
-      sounds.playTradeSuccess();
+    if (res.success && res.room) {
+      setRoom(res.room);
+      return { success: true };
     } else {
       sounds.playBell();
-      alert(res.error || "Order rejected");
+      return { success: false, error: res.error || "Order rejected" };
     }
   };
 
   if (!room || !currentPlayer) {
     return (
-      <div className="min-h-screen bg-[#070B12] flex flex-col items-center justify-center p-4">
-        <div className="w-10 h-10 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-sm font-bold text-slate-300 font-mono">Connecting to JSE Trading Floor ({roomCode})...</p>
+      <div className="min-h-screen bg-app flex flex-col items-center justify-center p-4">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs font-bold text-neutralMuted font-mono">
+          Connecting to JSE Trading Floor ({roomCode})...
+        </p>
       </div>
     );
   }
 
   const selectedAsset = room.assets?.[selectedAssetId] || Object.values(room.assets || {})[0];
   const deskInfo = DESK_METADATA[currentPlayer.desk];
-  const holding = (selectedAsset && currentPlayer.shares[selectedAsset.id]) || 0;
   const isMarketActive = room.status === "ACTIVE";
-  const mobileOrderEstimate = Number((mobileLot * (selectedAsset?.currentPrice || 0)).toFixed(2));
+  const isReturnPositive = currentPlayer.returnPercent >= 0;
 
-  // RENDER APP COMPONENT (Native Smartphone Experience)
-  const renderAppView = () => (
-    <div className="w-full sm:max-w-md mx-auto sm:rounded-[38px] sm:p-3 sm:bg-gradient-to-b sm:from-slate-800 sm:via-slate-900 sm:to-black sm:border-4 sm:border-slate-800 sm:shadow-2xl relative">
-      {/* Dynamic Notch: Displayed exclusively in desktop preview mode */}
-      <div className="hidden sm:flex w-28 h-4 bg-black rounded-full mx-auto mb-3 items-center justify-end px-3">
-        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-      </div>
+  // =========================================================================
+  // SCREEN E: MOBILE TERMINAL (Thumb-first Native App + Bottom Sheet)
+  // =========================================================================
+  const renderMobileTerminal = () => (
+    <div className="flex flex-col min-h-[calc(100vh-60px)] space-y-4">
+      {/* Non-blocking News Catalyst */}
+      <BreakingNewsBanner news={room.currentNews} />
 
-      {/* Screen Container */}
-      <div className="bg-[#090E17] sm:rounded-[28px] p-3.5 sm:p-4 text-white border border-slate-800/80 space-y-4 rounded-2xl">
-        {/* Mobile Header Bar */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-tr from-cyan-400 to-emerald-400 flex items-center justify-center font-black text-black text-xs shadow-md">
-              JSE
-            </div>
-            <div>
-              <div className="text-[10px] text-slate-400 leading-none">Desk • {deskInfo?.name}</div>
-              <div className="text-xs font-bold text-slate-200 mt-0.5">{currentPlayer.name}</div>
-            </div>
+      {/* TAB 1: MARKETS LIST */}
+      {mobileTab === "market" && (
+        <div className="space-y-2 motion-view-enter">
+          <div className="flex items-center justify-between text-xs font-bold text-neutralMuted uppercase px-1 font-mono">
+            <span>Market Equities (10)</span>
+            <span>Real-Time NSE</span>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-full border border-slate-800 text-[10px] font-mono">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isMarketActive ? "bg-emerald-400 animate-ping" : "bg-amber-400"
-              }`}
-            />
-            <span className={isMarketActive ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
-              {room.status}
-            </span>
-          </div>
-        </div>
-
-        {/* Breaking News Notification Pill */}
-        {room.currentNews && (
-          <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-2.5 flex items-center gap-2 text-[11px] text-amber-200">
-            <Megaphone className="w-4 h-4 text-amber-400 shrink-0 animate-bounce" />
-            <span className="truncate font-mono">{room.currentNews.title}</span>
-          </div>
-        )}
-
-        {/* Portfolio Value Card (Shown on Trade, Markets, Rankings tabs) */}
-        {activeTab !== "portfolio" && (
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-800/90 to-slate-900 border border-slate-700/60 shadow-lg relative overflow-hidden">
-          <div className="text-[10px] uppercase font-mono tracking-wider text-slate-400 flex items-center justify-between">
-            <span>Total Portfolio Value</span>
-            <span className="text-amber-400 font-bold">Rank #{currentPlayer.rank}</span>
-          </div>
-          <div className="text-2xl font-black font-mono mt-1 text-white">
-            {formatINR(currentPlayer.totalNetWorth)}
-          </div>
-          <div className="flex items-center gap-2 mt-1">
-            <span
-              className={`text-xs font-bold font-mono flex items-center ${
-                currentPlayer.returnPercent >= 0 ? "text-emerald-400" : "text-rose-400"
-              }`}
-            >
-              {currentPlayer.returnPercent >= 0 ? (
-                <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-              ) : (
-                <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
-              )}
-              {currentPlayer.returnPercent.toFixed(2)}%
-            </span>
-            <span className="text-[11px] text-slate-400 font-mono">
-              ({formatINR(currentPlayer.totalNetWorth - currentPlayer.initialNetWorth)})
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mt-3.5 pt-3 border-t border-slate-700/50 text-[11px] font-mono">
-            <div>
-              <span className="text-slate-400 text-[10px] block">Realized PnL</span>
-              <span
-                className={`font-semibold ${
-                  currentPlayer.realizedPnL >= 0 ? "text-emerald-400" : "text-rose-400"
-                }`}
-              >
-                {formatINR(currentPlayer.realizedPnL)}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 text-[10px] block">Liquid Cash</span>
-              <span className="text-slate-200 font-semibold">{formatINR(currentPlayer.cash)}</span>
-            </div>
-          </div>
-        </div>
-        )}
-
-        {/* Active Trade Box */}
-        {activeTab === "trade" && selectedAsset && (
-          <div className="space-y-3 bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800">
-            {/* Asset Switcher Dropdown */}
-            <div className="flex items-center justify-between gap-2">
-              <select
-                value={selectedAssetId}
-                onChange={(e) => setSelectedAssetId(e.target.value as AssetId)}
-                className="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-cyan-400 flex-1"
-              >
-                {(Object.keys(room.assets) as AssetId[]).map((aid) => (
-                  <option key={aid} value={aid}>
-                    {aid} — {formatINR(room.assets[aid].currentPrice)}
-                  </option>
-                ))}
-              </select>
-
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 font-bold shrink-0">
-                {selectedAsset.category}
-              </span>
-            </div>
-
-            {/* Price & Change */}
-            <div className="flex items-baseline justify-between">
-              <div>
-                <div className="text-lg font-black font-mono text-white">
-                  {formatINR(selectedAsset.currentPrice)}
-                </div>
-                <div
-                  className={`text-[11px] font-mono font-semibold ${
-                    selectedAsset.changePercent >= 0 ? "text-emerald-400" : "text-rose-400"
-                  }`}
-                >
-                  {selectedAsset.changePercent >= 0 ? "+" : ""}
-                  {selectedAsset.changePercent.toFixed(2)}% Today
-                </div>
-              </div>
-              <div className="text-right text-[11px] font-mono text-slate-400">
-                Holding: <span className="font-bold text-white">{holding} shares</span>
-              </div>
-            </div>
-
-            {/* Mini Sparkline Chart */}
-            <div className="w-full">
-              <PriceChart asset={selectedAsset} height={120} hideHeader={true} hideWrapper={true} />
-            </div>
-
-            {/* Lot Size Chips */}
-            <div>
-              <div className="text-[10px] text-slate-400 mb-1.5 flex justify-between">
-                <span>Select Order Lots</span>
-                <span className="font-mono text-cyan-300">{mobileLot} Shares</span>
-              </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[5, 10, 50, 100].map((qty) => (
-                  <button
-                    key={qty}
-                    type="button"
-                    onClick={() => setMobileLot(qty)}
-                    className={`py-1.5 rounded-lg border text-xs font-mono transition-all ${
-                      mobileLot === qty
-                        ? "border-cyan-400 bg-cyan-500/20 text-cyan-300 font-bold"
-                        : "border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700"
-                    }`}
-                  >
-                    {qty}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Estimated Total */}
-            <div className="flex items-center justify-between text-xs font-mono pt-1 border-t border-slate-800">
-              <span className="text-slate-400">Est. Order Value</span>
-              <span className="font-bold text-white">{formatINR(mobileOrderEstimate)}</span>
-            </div>
-
-            {/* Big Action Buttons */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => handleQuickMobileTrade("BUY")}
-                disabled={mobileOrderLoading || !isMarketActive || currentPlayer.cash < mobileOrderEstimate}
-                className="py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs flex items-center justify-center gap-1 transition shadow-lg shadow-emerald-500/20 disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <ArrowUp className="w-4 h-4 stroke-[3]" /> BUY
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickMobileTrade("SELL")}
-                disabled={mobileOrderLoading || !isMarketActive || holding < mobileLot}
-                className="py-3 rounded-xl bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-black text-xs flex items-center justify-center gap-1 transition shadow-lg shadow-rose-500/20 disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <ArrowDown className="w-4 h-4 stroke-[3]" /> SELL
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Tab View: Portfolio */}
-        {activeTab === "portfolio" && (
-          <div className="space-y-3">
-            <PortfolioCard player={currentPlayer} room={room} />
-          </div>
-        )}
-
-        {/* Tab View: Rankings */}
-        {activeTab === "leaderboard" && (
-          <div className="space-y-3">
-            <LiveLeaderboard
-              players={room.players}
-              currentPlayerId={currentPlayer.id}
-              maxDisplay={20}
-            />
-          </div>
-        )}
-
-        {/* Tab View: Markets Watchlist */}
-        {activeTab === "markets" && (
-          <div className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
+          <div className="space-y-1.5">
             {(Object.keys(room.assets) as AssetId[]).map((aid) => {
               const a = room.assets[aid];
               const isPos = a.changePercent >= 0;
+              const isSel = selectedAssetId === aid;
+
               return (
                 <div
                   key={aid}
                   onClick={() => {
                     setSelectedAssetId(aid);
-                    setActiveTab("trade");
+                    setShowMobileTradeSheet(true);
                   }}
-                  className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-cyan-400 transition-all"
+                  className={`p-3 rounded-ui border transition-colors flex items-center justify-between cursor-pointer ${
+                    isSel
+                      ? "bg-accent-subtle border-accent"
+                      : "bg-surface border-borderSubtle hover:border-borderStrong"
+                  }`}
                 >
                   <div>
-                    <span className="font-black text-xs text-white">{aid}</span>
-                    <span className="text-[10px] text-slate-400 block">{a.name}</span>
+                    <div className="font-bold text-sm text-white font-mono">{aid}</div>
+                    <div className="text-xs text-neutralMuted">{a.name}</div>
                   </div>
-                  <div className="text-right font-mono">
-                    <div className="text-xs font-bold text-white">{formatINR(a.currentPrice)}</div>
-                    <div className={`text-[10px] font-semibold ${isPos ? "text-emerald-400" : "text-rose-400"}`}>
-                      {isPos ? "+" : ""}{a.changePercent.toFixed(1)}%
+
+                  <div className="text-right">
+                    <div className="text-sm font-bold font-mono text-white tabular-nums">
+                      {formatINR(a.currentPrice)}
+                    </div>
+                    <div
+                      className={`text-xs font-mono font-bold tabular-nums ${
+                        isPos ? "text-gain" : "text-loss"
+                      }`}
+                    >
+                      {isPos ? "+" : ""}
+                      {a.changePercent.toFixed(1)}%
                     </div>
                   </div>
                 </div>
               );
             })}
           </div>
-        )}
-
-        {/* Bottom Tab Bar (App Navigation) */}
-        <div className="sticky bottom-0 z-30 -mx-3.5 sm:-mx-4 -mb-3.5 sm:-mb-4 pt-2.5 pb-2 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around text-slate-400 text-[10px] rounded-b-2xl sm:rounded-b-[28px]">
-          <button
-            type="button"
-            onClick={() => setActiveTab("trade")}
-            className={`flex flex-col items-center transition-colors ${
-              activeTab === "trade" ? "text-cyan-400 font-bold" : "hover:text-slate-200"
-            }`}
-          >
-            <TrendingUp className="w-4 h-4 mb-0.5" />
-            <span>Trade</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("portfolio")}
-            className={`flex flex-col items-center transition-colors ${
-              activeTab === "portfolio" ? "text-cyan-400 font-bold" : "hover:text-slate-200"
-            }`}
-          >
-            <Briefcase className="w-4 h-4 mb-0.5" />
-            <span>Portfolio</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("markets")}
-            className={`flex flex-col items-center transition-colors ${
-              activeTab === "markets" ? "text-cyan-400 font-bold" : "hover:text-slate-200"
-            }`}
-          >
-            <PieChart className="w-4 h-4 mb-0.5" />
-            <span>Markets</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("leaderboard")}
-            className={`flex flex-col items-center transition-colors ${
-              activeTab === "leaderboard" ? "text-cyan-400 font-bold" : "hover:text-slate-200"
-            }`}
-          >
-            <Trophy className="w-4 h-4 mb-0.5" />
-            <span>Rankings</span>
-          </button>
         </div>
-      </div>
-    </div>
-  );
+      )}
 
-  // RENDER WEB PRO TERMINAL COMPONENT (Full Desktop Trading Floor)
-  const renderWebTerminal = () => (
-    <div className="space-y-5">
-      {/* Top Market Ticker Header Strip (Inspired by View 2) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-10 gap-2 font-mono text-xs">
-        {(Object.keys(room.assets) as AssetId[]).map((aid) => {
-          const a = room.assets[aid];
-          const isPos = a.changePercent >= 0;
-          const isSelected = selectedAssetId === aid;
-
-          return (
-            <button
-              key={aid}
-              onClick={() => setSelectedAssetId(aid)}
-              className={`p-2.5 rounded-xl text-left border-l-4 transition-all glass-card ${
-                isPos ? "border-l-emerald-400" : "border-l-rose-500"
-              } ${isSelected ? "ring-2 ring-cyan-400 bg-slate-800/80" : "hover:bg-slate-800/50"}`}
+      {/* TAB 2: TRADE (Chart + TradePad) */}
+      {mobileTab === "trade" && selectedAsset && (
+        <div className="space-y-4 motion-view-enter">
+          {/* Asset Select Dropdown */}
+          <div className="flex items-center justify-between gap-2">
+            <select
+              value={selectedAssetId}
+              onChange={(e) => setSelectedAssetId(e.target.value as AssetId)}
+              className="min-h-touch bg-surface border border-borderSubtle focus:border-borderFocus rounded-ui px-3 py-2 text-sm text-white font-mono font-bold focus:outline-none flex-1"
             >
-              <div className="text-slate-400 text-[10px] font-bold">{aid}</div>
-              <div className="text-xs font-bold text-white mt-0.5 truncate">{formatINR(a.currentPrice)}</div>
-              <div
-                className={`text-[10px] font-semibold flex items-center gap-0.5 ${
-                  isPos ? "text-emerald-400" : "text-rose-400"
-                }`}
-              >
-                {isPos ? "+" : ""}
-                {a.changePercent.toFixed(1)}%
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              {(Object.keys(room.assets) as AssetId[]).map((aid) => (
+                <option key={aid} value={aid}>
+                  {aid} — {formatINR(room.assets[aid].currentPrice)}
+                </option>
+              ))}
+            </select>
 
-      {/* Main Trading Floor Split: Watchlist + Main Chart + Order Ticket */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left Column: Watchlist & Execution Feed (3 cols) */}
-        <div className="lg:col-span-3 space-y-4">
-          {/* Watchlist */}
-          <div className="glass-card rounded-2xl p-4 flex flex-col h-[280px]">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-cyan-400" /> Watchlist (10 Equities)
-              </span>
-              <span className="text-[10px] font-mono text-slate-400">₹ INR</span>
-            </div>
-
-            <div className="mt-2.5 flex-1 overflow-y-auto space-y-1.5 pr-1 text-xs font-mono">
-              {(Object.keys(room.assets) as AssetId[]).map((aid) => {
-                const a = room.assets[aid];
-                const isPos = a.changePercent >= 0;
-                const isSelected = selectedAssetId === aid;
-
-                return (
-                  <div
-                    key={aid}
-                    onClick={() => setSelectedAssetId(aid)}
-                    className={`p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${
-                      isSelected
-                        ? "bg-slate-800 border-cyan-400 shadow-md"
-                        : "bg-slate-900/50 border-slate-800/80 hover:border-slate-700"
-                    }`}
-                  >
-                    <div>
-                      <span className="font-bold text-white">{aid}</span>
-                      <span className="text-[10px] text-slate-500 block">{a.category}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-semibold text-slate-200">{formatINR(a.currentPrice)}</span>
-                      <span className={`block text-[10px] font-bold ${isPos ? "text-emerald-400" : "text-rose-400"}`}>
-                        {isPos ? "+" : ""}{a.changePercent.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <span className="px-2.5 py-1.5 rounded-ui bg-surface-subtle border border-borderSubtle text-xs font-mono text-neutralMuted">
+              {selectedAsset.category}
+            </span>
           </div>
 
-          {/* Execution Feed */}
-          <div className="glass-card rounded-2xl p-4 flex flex-col h-[280px]">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Activity className="w-3.5 h-3.5 text-emerald-400" /> Execution Feed
-              </span>
-              <span className="text-[10px] font-mono text-emerald-400">Live Sync</span>
-            </div>
-
-            <div className="mt-2.5 flex-1 overflow-y-auto space-y-1.5 pr-1 text-xs font-mono">
-              {(room.recentTrades?.length || 0) === 0 ? (
-                <div className="text-slate-500 text-xs italic py-4 text-center">Waiting for market orders...</div>
-              ) : (
-                (room.recentTrades || []).slice(0, 10).map((t) => (
-                  <div
-                    key={t.id}
-                    className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center justify-between"
-                  >
-                    <div>
-                      <span className="font-bold text-slate-200">{t.assetId}</span>
-                      <span className="text-[10px] text-slate-500 block">{t.playerName}</span>
-                    </div>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                        t.side === "BUY"
-                          ? "bg-emerald-500/15 text-emerald-400"
-                          : "bg-rose-500/15 text-rose-400"
-                      }`}
-                    >
-                      {t.side} {t.quantity}
-                    </span>
-                    <span className="text-slate-300 font-medium">{formatINR(t.price)}</span>
-                  </div>
-                ))
-              )}
-            </div>
+          {/* Chart */}
+          <div className="card-surface p-4">
+            <PriceChart asset={selectedAsset} height={180} hideHeader={false} hideWrapper={true} />
           </div>
-        </div>
 
-        {/* Center Column: Interactive Chart & Sentiment (6 cols) */}
-        <div className="lg:col-span-6 space-y-4">
-          {/* Breaking News Banner with Audio */}
-          <BreakingNewsBanner news={room.currentNews} />
-
-          {/* Price Chart Container */}
-          {selectedAsset && (
-            <div className="glass-card rounded-2xl p-5 flex flex-col">
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-black text-white tracking-tight">{selectedAsset.name}</h2>
-                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold">
-                      {selectedAsset.id}
-                    </span>
-                    <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono font-semibold">
-                      {selectedAsset.changePercent >= 0 ? "+" : ""}
-                      {selectedAsset.changePercent.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-400 font-mono mt-0.5">
-                    NSE: {selectedAsset.id} • Sector: {selectedAsset.category}
-                  </div>
-                </div>
-
-                <div className="flex items-center bg-slate-800/80 p-1 rounded-lg text-xs font-mono">
-                  <button className="px-2.5 py-1 rounded bg-slate-700 text-white font-bold">1D</button>
-                  <button className="px-2.5 py-1 rounded text-slate-400 hover:text-white">1W</button>
-                  <button className="px-2.5 py-1 rounded text-slate-400 hover:text-white">1M</button>
-                  <button className="px-2.5 py-1 rounded text-slate-400 hover:text-white">YTD</button>
-                </div>
-              </div>
-
-              {/* Price Display */}
-              <div className="mt-3 flex items-baseline gap-3">
-                <span className="text-3xl font-black font-mono text-white tracking-tight">
-                  {formatINR(selectedAsset.currentPrice)}
-                </span>
-                <span className="text-xs text-slate-400 font-mono">
-                  Day High: {formatINR(selectedAsset.dayHigh)} • Low: {formatINR(selectedAsset.dayLow)}
-                </span>
-              </div>
-
-              {/* Chart SVG */}
-              <div className="mt-3">
-                <PriceChart asset={selectedAsset} height={250} hideHeader={true} hideWrapper={true} />
-              </div>
-            </div>
-          )}
-
-          {/* Sentiment Gauge */}
-          <SentimentMeter recentTrades={room.recentTrades} />
-        </div>
-
-        {/* Right Column: Order Pad & Leaderboard (3 cols) */}
-        <div className="lg:col-span-3 space-y-4">
-          {/* Quick Order Slip / TradePad */}
+          {/* Trade Pad */}
           <TradePad
             player={currentPlayer}
             room={room}
@@ -683,124 +289,441 @@ function PlayRoomContent() {
             selectedAssetId={selectedAssetId}
             onSelectAsset={setSelectedAssetId}
           />
+        </div>
+      )}
 
-          {/* Portfolio & Rank Card */}
+      {/* TAB 3: PORTFOLIO */}
+      {mobileTab === "portfolio" && (
+        <div className="space-y-4 motion-view-enter">
           <PortfolioCard player={currentPlayer} room={room} />
+        </div>
+      )}
 
-          {/* Live Rankings */}
-          <LiveLeaderboard
-            players={room.players}
-            currentPlayerId={currentPlayer.id}
-            maxDisplay={10}
-          />
+      {/* TAB 4: LEADERBOARD */}
+      {mobileTab === "leaderboard" && (
+        <div className="space-y-4 motion-view-enter">
+          <LiveLeaderboard players={room.players} currentPlayerId={currentPlayer.id} maxDisplay={20} />
+        </div>
+      )}
+
+      {/* TAB 5: NEWS FEED */}
+      {mobileTab === "news" && (
+        <div className="card-surface p-4 space-y-3 motion-view-enter">
+          <div className="flex items-center justify-between pb-2 border-b border-borderSubtle">
+            <span className="text-xs font-bold text-white uppercase tracking-wider">
+              News Wire & Shocks
+            </span>
+            <span className="text-xs font-mono text-neutralMuted">
+              {room.newsHistory?.length || 0} Events
+            </span>
+          </div>
+
+          {(room.newsHistory?.length || 0) === 0 ? (
+            <div className="text-xs text-neutralMuted italic py-6 text-center font-mono">
+              Waiting for instructor news catalysts...
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(room.newsHistory || []).map((n) => (
+                <div key={n.id} className="p-3 bg-surface-subtle rounded-ui border border-borderSubtle space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-white">{n.title}</span>
+                    <span className="text-[10px] text-neutralMuted font-mono">
+                      {new Date(n.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutralMuted leading-relaxed">{n.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mobile Bottom Sheet for Quick Order */}
+      {showMobileTradeSheet && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end">
+          <div className="bg-surface border-t border-borderSubtle rounded-t-2xl p-4 max-h-[85vh] overflow-y-auto motion-sheet-enter space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-borderSubtle">
+              <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                Order Ticket: {selectedAssetId}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowMobileTradeSheet(false)}
+                className="p-1 rounded text-neutralMuted hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <TradePad
+              player={currentPlayer}
+              room={room}
+              onTrade={async (order) => {
+                const res = await handleExecuteTrade(order);
+                if (res.success) setShowMobileTradeSheet(false);
+                return res;
+              }}
+              selectedAssetId={selectedAssetId}
+              onSelectAsset={setSelectedAssetId}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Sticky Bottom Tab Bar (44px min touch height) */}
+      <nav className="sticky bottom-0 z-40 bg-surface/95 backdrop-blur-md border-t border-borderSubtle p-1.5 flex items-center justify-around text-xs font-medium">
+        <button
+          type="button"
+          onClick={() => setMobileTab("market")}
+          className={`min-h-touch flex-1 flex flex-col items-center justify-center gap-1 rounded-md transition-colors ${
+            mobileTab === "market" ? "text-accent font-bold" : "text-neutralMuted hover:text-white"
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span className="text-[10px]">Market</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMobileTab("trade")}
+          className={`min-h-touch flex-1 flex flex-col items-center justify-center gap-1 rounded-md transition-colors ${
+            mobileTab === "trade" ? "text-accent font-bold" : "text-neutralMuted hover:text-white"
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span className="text-[10px]">Trade</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMobileTab("portfolio")}
+          className={`min-h-touch flex-1 flex flex-col items-center justify-center gap-1 rounded-md transition-colors ${
+            mobileTab === "portfolio" ? "text-accent font-bold" : "text-neutralMuted hover:text-white"
+          }`}
+        >
+          <Briefcase className="w-4 h-4" />
+          <span className="text-[10px]">Portfolio</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMobileTab("leaderboard")}
+          className={`min-h-touch flex-1 flex flex-col items-center justify-center gap-1 rounded-md transition-colors ${
+            mobileTab === "leaderboard" ? "text-accent font-bold" : "text-neutralMuted hover:text-white"
+          }`}
+        >
+          <Trophy className="w-4 h-4" />
+          <span className="text-[10px]">Ranks</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMobileTab("news")}
+          className={`min-h-touch flex-1 flex flex-col items-center justify-center gap-1 rounded-md transition-colors ${
+            mobileTab === "news" ? "text-accent font-bold" : "text-neutralMuted hover:text-white"
+          }`}
+        >
+          <Radio className="w-4 h-4" />
+          <span className="text-[10px]">News</span>
+        </button>
+      </nav>
+    </div>
+  );
+
+  // =========================================================================
+  // SCREEN D: WEB PRO TERMINAL (Strict 3-Column Data-First Layout)
+  // =========================================================================
+  const renderWebTerminal = () => (
+    <div className="grid grid-cols-12 gap-5 items-start">
+      
+      {/* ------------------------------------------------------------------- */}
+      {/* COLUMN 1 (Left: 3 cols) - Watchlist & Live Equities                 */}
+      {/* ------------------------------------------------------------------- */}
+      <div className="col-span-3 space-y-4">
+        <div className="card-surface p-4 flex flex-col">
+          <div className="flex items-center justify-between pb-2 border-b border-borderSubtle">
+            <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-mono">
+              <Layers className="w-3.5 h-3.5 text-accent" /> Watchlist
+            </span>
+            <span className="text-[11px] font-mono text-neutralMuted">10 Equities</span>
+          </div>
+
+          <div className="mt-2.5 space-y-1 overflow-y-auto max-h-[calc(100vh-220px)] pr-1 text-xs font-mono">
+            {(Object.keys(room.assets) as AssetId[]).map((aid) => {
+              const a = room.assets[aid];
+              const isPos = a.changePercent >= 0;
+              const isSelected = selectedAssetId === aid;
+
+              return (
+                <div
+                  key={aid}
+                  onClick={() => setSelectedAssetId(aid)}
+                  className={`p-2.5 rounded-ui border transition-colors cursor-pointer flex items-center justify-between ${
+                    isSelected
+                      ? "bg-accent-subtle border-accent"
+                      : "bg-surface-subtle border-borderSubtle hover:border-borderStrong"
+                  }`}
+                >
+                  <div>
+                    <div className="font-bold text-white font-mono">{aid}</div>
+                    <div className="text-[10px] text-neutralMuted">{a.category}</div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="font-bold text-white tabular-nums">
+                      {formatINR(a.currentPrice)}
+                    </div>
+                    <div
+                      className={`text-[11px] font-bold tabular-nums ${
+                        isPos ? "text-gain" : "text-loss"
+                      }`}
+                    >
+                      {isPos ? "+" : ""}
+                      {a.changePercent.toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
+
+      {/* ------------------------------------------------------------------- */}
+      {/* COLUMN 2 (Center: 6 cols) - Chart & Consolidated Order Ticket       */}
+      {/* ------------------------------------------------------------------- */}
+      <div className="col-span-6 space-y-4">
+        {/* Non-blocking News Catalyst */}
+        <BreakingNewsBanner news={room.currentNews} />
+
+        {/* SVG Price Chart Card */}
+        {selectedAsset && (
+          <div className="card-surface p-5 space-y-3">
+            <div className="flex items-center justify-between pb-3 border-b border-borderSubtle">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-white tracking-tight">{selectedAsset.name}</h2>
+                  <span className="text-xs px-2 py-0.5 rounded bg-surface-subtle border border-borderSubtle font-mono text-neutralMuted">
+                    {selectedAsset.id}
+                  </span>
+                </div>
+                <div className="text-xs text-neutralMuted font-mono mt-0.5">
+                  NSE Real-Time • Sector: {selectedAsset.category}
+                </div>
+              </div>
+
+              <div className="text-right">
+                <div className="text-2xl font-bold font-mono text-white tabular-nums">
+                  {formatINR(selectedAsset.currentPrice)}
+                </div>
+                <div
+                  className={`text-xs font-mono font-bold tabular-nums ${
+                    selectedAsset.changePercent >= 0 ? "text-gain" : "text-loss"
+                  }`}
+                >
+                  {selectedAsset.changePercent >= 0 ? "+" : ""}
+                  {selectedAsset.changePercent.toFixed(2)}%
+                </div>
+              </div>
+            </div>
+
+            {/* Price Chart SVG */}
+            <PriceChart asset={selectedAsset} height={200} hideHeader={true} hideWrapper={true} />
+          </div>
+        )}
+
+        {/* Consolidated Order Ticket */}
+        <TradePad
+          player={currentPlayer}
+          room={room}
+          onTrade={handleExecuteTrade}
+          selectedAssetId={selectedAssetId}
+          onSelectAsset={setSelectedAssetId}
+        />
+      </div>
+
+      {/* ------------------------------------------------------------------- */}
+      {/* COLUMN 3 (Right: 3 cols) - Positions, Feed, & Leaderboard           */}
+      {/* ------------------------------------------------------------------- */}
+      <div className="col-span-3 space-y-4">
+        {/* Portfolio & Positions */}
+        <PortfolioCard player={currentPlayer} room={room} />
+
+        {/* Live Leaderboard */}
+        <LiveLeaderboard players={room.players} currentPlayerId={currentPlayer.id} maxDisplay={6} />
+
+        {/* Collapsible Execution Feed */}
+        <div className="card-surface p-4 flex flex-col">
+          <div
+            onClick={() => setShowFeed(!showFeed)}
+            className="flex items-center justify-between cursor-pointer pb-1 border-b border-borderSubtle"
+          >
+            <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-mono">
+              <Activity className="w-3.5 h-3.5 text-neutralMuted" /> Execution Feed
+            </span>
+            {showFeed ? <ChevronUp className="w-3.5 h-3.5 text-neutralMuted" /> : <ChevronDown className="w-3.5 h-3.5 text-neutralMuted" />}
+          </div>
+
+          {showFeed && (
+            <div className="mt-2 space-y-1 max-h-[160px] overflow-y-auto pr-1 text-xs font-mono">
+              {(room.recentTrades?.length || 0) === 0 ? (
+                <div className="text-neutralMuted text-xs italic py-3 text-center">
+                  Waiting for orders...
+                </div>
+              ) : (
+                (room.recentTrades || []).slice(0, 8).map((t) => (
+                  <div
+                    key={t.id}
+                    className="p-1.5 rounded bg-surface-subtle border border-borderSubtle flex items-center justify-between"
+                  >
+                    <div>
+                      <span className="font-bold text-white">{t.assetId}</span>
+                      <span className="text-[10px] text-neutralMuted block truncate max-w-[80px]">
+                        {t.playerName}
+                      </span>
+                    </div>
+                    <span
+                      className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                        t.side === "BUY" ? "text-gain bg-gain-subtle" : "text-loss bg-loss-subtle"
+                      }`}
+                    >
+                      {t.side} {t.quantity}
+                    </span>
+                    <span className="text-white tabular-nums">{formatINR(t.price)}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Sentiment Meter */}
+        <SentimentMeter recentTrades={room.recentTrades} />
+      </div>
+
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#070B12] text-slate-100 pb-16 font-sans">
-      {/* Top Global Navigation Bar */}
-      <header className="border-b border-slate-800/80 bg-[#0A0E17]/90 sticky top-0 z-50 backdrop-blur-md px-4 sm:px-6 py-2.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-          {/* Brand & Identity */}
-          <div className="flex items-center space-x-2.5 min-w-0">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-cyan-400 to-emerald-400 flex items-center justify-center font-black text-black text-sm tracking-tight shadow-md shrink-0">
-              JSE
+    <div className="min-h-screen bg-app text-slate-100 flex flex-col justify-between font-sans">
+      
+      {/* =================================================================== */}
+      {/* STICKY MINIMALIST TERMINAL HEADER                                   */}
+      {/* =================================================================== */}
+      <header className="border-b border-borderSubtle bg-surface sticky top-0 z-50 px-4 sm:px-6 py-2.5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          
+          {/* Left: Brand + Trader Desk Badge */}
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="bg-white p-1 rounded-md shrink-0">
+              <img src="/jain-logo.png" alt="Jain Logo" className="h-4 w-auto" />
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] sm:text-[11px] font-semibold tracking-wider text-slate-400 uppercase leading-none truncate">
-                Jain University
-              </div>
-              <div className="text-xs sm:text-sm font-bold tracking-tight text-white flex items-center gap-1.5 mt-0.5 truncate">
+              <div className="text-[11px] font-bold text-white truncate flex items-center gap-1.5">
                 <span className="truncate">{currentPlayer.name}</span>
-                <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono shrink-0">
+                <span className="text-[10px] font-mono font-bold text-amber-400">
                   #{currentPlayer.rank}
                 </span>
-                <span className="hidden sm:inline-block text-[11px] text-slate-400">
-                  ({deskInfo?.name})
-                </span>
+              </div>
+              <div className="text-[10px] text-neutralMuted font-mono truncate">
+                {deskInfo?.name} • Room {roomCode}
               </div>
             </div>
           </div>
 
-          {/* View Mode Switcher: Web Pro Terminal vs Mobile App */}
-          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-medium shrink-0">
-            <button
-              type="button"
-              onClick={() => setViewMode("web")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg transition-all ${
-                viewMode === "web" || (viewMode === "responsive" && typeof window !== "undefined" && window.innerWidth >= 1024)
-                  ? "text-white bg-slate-800 shadow font-bold"
-                  : "text-slate-400 hover:text-white"
+          {/* Center: Live Clock & Round Telemetry */}
+          <div className="hidden md:flex items-center gap-3 font-mono text-xs text-neutralMuted">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-accent" />
+              <span className="text-white font-bold tabular-nums">{clockTime || "10:00:00"}</span>
+            </span>
+            <span>•</span>
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                isMarketActive ? "bg-gain-subtle text-gain" : "bg-warningMuted-subtle text-warningMuted"
               }`}
             >
-              <Monitor className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden sm:inline">Web Pro Terminal</span>
-              <span className="sm:hidden text-[11px]">Web</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setViewMode("app")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg transition-all ${
-                viewMode === "app" || (viewMode === "responsive" && typeof window !== "undefined" && window.innerWidth < 1024)
-                  ? "text-white bg-slate-800 shadow font-bold"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Smartphone className="w-3.5 h-3.5 text-purple-400" />
-              <span className="hidden sm:inline">Mobile App View</span>
-              <span className="sm:hidden text-[11px]">App</span>
-            </button>
+              {room.status} (Round {room.currentRound} of {room.totalRounds})
+            </span>
           </div>
 
-          {/* Audio & Net Worth */}
-          <div className="flex items-center gap-2 sm:gap-3 text-xs shrink-0">
-            <div className="hidden md:flex flex-col text-right font-mono text-xs">
-              <span className="text-slate-400 text-[10px]">ROOM PIN</span>
-              <span className="font-bold text-cyan-400">{roomCode}</span>
-            </div>
-
+          {/* Right: Net Worth, Liquid Cash, Audio & Mode Toggle */}
+          <div className="flex items-center gap-3 text-xs shrink-0 font-mono">
+            
+            {/* Net Worth & P&L */}
             <div className="text-right">
-              <div className="hidden sm:block text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                Total Net Worth
-              </div>
-              <div className="text-xs sm:text-sm font-black font-mono text-emerald-400">
+              <div className="text-xs sm:text-sm font-bold text-white tabular-nums">
                 {formatINR(currentPlayer.totalNetWorth)}
               </div>
+              <div
+                className={`text-[11px] font-bold tabular-nums ${
+                  isReturnPositive ? "text-gain" : "text-loss"
+                }`}
+              >
+                {isReturnPositive ? "+" : ""}
+                {currentPlayer.returnPercent.toFixed(2)}%
+              </div>
             </div>
 
+            {/* View Mode Toggle */}
+            <div className="hidden sm:inline-flex bg-surface-subtle p-0.5 rounded-ui border border-borderSubtle text-xs">
+              <button
+                type="button"
+                onClick={() => setViewMode("web")}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                  viewMode === "web" || (viewMode === "responsive" && typeof window !== "undefined" && window.innerWidth >= 1024)
+                    ? "bg-surface text-white shadow-sm"
+                    : "text-neutralMuted hover:text-white"
+                }`}
+              >
+                Pro
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("app")}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                  viewMode === "app" || (viewMode === "responsive" && typeof window !== "undefined" && window.innerWidth < 1024)
+                    ? "bg-surface text-white shadow-sm"
+                    : "text-neutralMuted hover:text-white"
+                }`}
+              >
+                App
+              </button>
+            </div>
+
+            {/* Audio Toggle */}
             <button
               type="button"
               onClick={toggleSound}
-              title="Toggle Audio & AI Voice"
-              className="p-1.5 sm:p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition-all border border-slate-700"
+              title="Toggle audio"
+              className="p-1.5 rounded-ui bg-surface-subtle text-neutralMuted hover:text-white border border-borderSubtle transition-colors"
             >
-              {soundEnabled ? (
-                <Volume2 className="w-4 h-4 text-cyan-400" />
-              ) : (
-                <VolumeX className="w-4 h-4 text-slate-500" />
-              )}
+              {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-accent" /> : <VolumeX className="w-3.5 h-3.5 text-neutralMuted" />}
             </button>
           </div>
+
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-7xl mx-auto p-4 sm:p-6">
+      {/* Main Content Area */}
+      <main className="max-w-7xl w-full mx-auto p-4 sm:p-6 flex-1">
         {viewMode === "app" ? (
-          renderAppView()
+          renderMobileTerminal()
         ) : viewMode === "web" ? (
           renderWebTerminal()
         ) : (
           <>
-            {/* Responsive Mode: Mobile on small screens, Web on large screens */}
-            <div className="lg:hidden">{renderAppView()}</div>
+            <div className="lg:hidden">{renderMobileTerminal()}</div>
             <div className="hidden lg:block">{renderWebTerminal()}</div>
           </>
         )}
       </main>
+
+      <footer className="w-full text-center text-[11px] text-neutralMuted font-mono py-3 border-t border-borderSubtle">
+        JSE Simulation • Continuous Double Auction • Zero Risk
+      </footer>
     </div>
   );
 }
@@ -809,9 +732,8 @@ export default function PlayRoomPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#070B12] flex flex-col items-center justify-center p-4">
-          <div className="w-10 h-10 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-sm font-bold text-slate-300 font-mono">Loading Trading Floor...</p>
+        <div className="min-h-screen bg-app flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
       }
     >

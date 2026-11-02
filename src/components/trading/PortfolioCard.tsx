@@ -3,7 +3,7 @@
 import React from "react";
 import { AssetId, PlayerPortfolio, RoomState } from "@/types/trading";
 import { DESK_METADATA, formatINR } from "@/lib/constants";
-import { Trophy, TrendingUp, TrendingDown, Wallet, PieChart, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PieChart } from "lucide-react";
 
 interface PortfolioCardProps {
   player: PlayerPortfolio;
@@ -17,7 +17,7 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ player, room }) =>
   const holdings = (Object.keys(player.shares) as AssetId[])
     .map((aid) => {
       const qty = player.shares[aid] || 0;
-      const asset = room.assets[aid];
+      const asset = room.assets?.[aid];
       const price = asset?.currentPrice || 0;
       const value = qty * price;
       return { aid, qty, price, value, asset };
@@ -27,130 +27,93 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ player, room }) =>
   const totalHoldingsValue = holdings.reduce((sum, h) => sum + h.value, 0);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl">
-      {/* Header with Desk Badge and Rank */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <span
-            className={`text-xs px-3 py-1 rounded-full font-extrabold border ${
-              deskInfo?.badgeColor || "bg-slate-800 text-slate-300 border-slate-700"
-            }`}
-          >
-            {deskInfo?.name || player.desk}
+    <div className="card-surface p-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-2 border-b border-borderSubtle">
+        <span className="text-xs font-bold text-white uppercase tracking-wider">
+          Portfolio & Positions
+        </span>
+        <span className="text-xs font-mono font-bold text-amber-400">
+          Rank #{player.rank || 1}
+        </span>
+      </div>
+
+      {/* Main Net Worth and Return */}
+      <div className="grid grid-cols-2 gap-3 p-3 bg-surface-subtle rounded-ui border border-borderSubtle font-mono">
+        <div>
+          <span className="text-[10px] text-neutralMuted uppercase block">Total Net Worth</span>
+          <span className="text-lg font-bold text-white tabular-nums">
+            {formatINR(player.totalNetWorth)}
           </span>
         </div>
 
-        <div className="flex items-center space-x-1.5 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full text-amber-300 font-extrabold text-xs">
-          <Trophy className="w-3.5 h-3.5 text-amber-400" />
-          <span>RANK #{player.rank || 1}</span>
-        </div>
-      </div>
-
-      {/* Main Net Worth and P&L Grid */}
-      <div className="grid grid-cols-2 gap-3 mb-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
-        <div>
-          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
-            Total Net Worth
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-white tracking-tight font-mono mt-0.5">
-            {formatINR(player.totalNetWorth)}
-          </div>
-        </div>
-
         <div className="text-right">
-          <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
-            Total Return
-          </div>
+          <span className="text-[10px] text-neutralMuted uppercase block">Total Return</span>
           <div
-            className={`text-xl sm:text-2xl font-black tracking-tight font-mono mt-0.5 flex items-center justify-end ${
-              isPositive ? "text-emerald-400" : "text-rose-400"
+            className={`text-lg font-bold flex items-center justify-end tabular-nums ${
+              isPositive ? "text-gain" : "text-loss"
             }`}
           >
             {isPositive ? (
-              <TrendingUp className="w-5 h-5 mr-1" />
+              <TrendingUp className="w-4 h-4 mr-1" />
             ) : (
-              <TrendingDown className="w-5 h-5 mr-1" />
+              <TrendingDown className="w-4 h-4 mr-1" />
             )}
-            {isPositive ? "+" : ""}
-            {player.returnPercent.toFixed(2)}%
+            <span>
+              {isPositive ? "+" : ""}
+              {player.returnPercent.toFixed(2)}%
+            </span>
           </div>
         </div>
       </div>
 
       {/* Cash vs Holdings Breakdown */}
-      <div className="grid grid-cols-2 gap-2 mb-4 text-xs font-mono">
-        <div className="bg-slate-950/80 border border-slate-800/80 p-2.5 rounded-xl">
-          <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center space-x-1">
-            <Wallet className="w-3 h-3 text-emerald-400" />
-            <span>Liquid Cash</span>
-          </div>
-          <div className="text-sm font-black text-emerald-400 mt-0.5">
+      <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+        <div className="bg-surface-subtle border border-borderSubtle p-2.5 rounded-ui">
+          <div className="text-[10px] text-neutralMuted uppercase">Liquid Cash</div>
+          <div className="text-sm font-bold text-gain tabular-nums mt-0.5">
             {formatINR(player.cash)}
           </div>
         </div>
 
-        <div className="bg-slate-950/80 border border-slate-800/80 p-2.5 rounded-xl">
-          <div className="text-[10px] text-slate-400 font-bold uppercase flex items-center space-x-1">
-            <PieChart className="w-3 h-3 text-cyan-400" />
-            <span>Equity Value</span>
-          </div>
-          <div className="text-sm font-black text-cyan-300 mt-0.5">
+        <div className="bg-surface-subtle border border-borderSubtle p-2.5 rounded-ui">
+          <div className="text-[10px] text-neutralMuted uppercase">Equity Value</div>
+          <div className="text-sm font-bold text-white tabular-nums mt-0.5">
             {formatINR(totalHoldingsValue)}
           </div>
         </div>
       </div>
 
-      {/* Holdings Breakdown Table */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-          <span className="flex items-center space-x-1">
-            <Activity className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Open Stock Positions ({holdings.length})</span>
-          </span>
-          <span className="text-[10px] text-slate-500 font-mono">
-            {player.totalTrades} Executed Trades
-          </span>
+      {/* Position List */}
+      <div className="space-y-1.5 pt-1">
+        <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-neutralMuted">
+          Active Stock Positions ({holdings.length})
         </div>
 
         {holdings.length === 0 ? (
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/60 text-center text-xs text-slate-500 italic">
-            No active stock holdings. Use the Trading Pad to execute orders.
+          <div className="text-xs text-neutralMuted italic py-2 text-center font-mono">
+            All cash • No stock positions
           </div>
         ) : (
-          <div className="space-y-1.5">
-            {holdings.map((h) => {
-              const isPos = (h.asset?.changePercent || 0) >= 0;
-              return (
-                <div
-                  key={h.aid}
-                  className="flex items-center justify-between p-2.5 bg-slate-950/70 rounded-xl border border-slate-800/80 text-xs transition-all hover:border-slate-700"
-                >
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="font-black text-white">{h.aid}</span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-slate-800 text-slate-400">
-                        {h.asset?.category}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                      {h.qty} shares @ {formatINR(h.price)}
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="font-mono font-black text-white">{formatINR(h.value)}</div>
-                    <div
-                      className={`text-[10px] font-mono font-bold ${
-                        isPos ? "text-emerald-400" : "text-rose-400"
-                      }`}
-                    >
-                      {isPos ? "+" : ""}
-                      {h.asset?.changePercent.toFixed(1)}% today
-                    </div>
-                  </div>
+          <div className="space-y-1 max-h-[140px] overflow-y-auto pr-1">
+            {holdings.map((h) => (
+              <div
+                key={h.aid}
+                className="p-2 rounded bg-surface-subtle border border-borderSubtle flex items-center justify-between text-xs font-mono"
+              >
+                <div>
+                  <span className="font-bold text-white">{h.aid}</span>
+                  <span className="text-[10px] text-neutralMuted ml-1.5">
+                    {h.qty} shares
+                  </span>
                 </div>
-              );
-            })}
+                <div className="text-right">
+                  <span className="text-white font-semibold tabular-nums">
+                    {formatINR(h.value)}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

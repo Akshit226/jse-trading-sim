@@ -1,103 +1,76 @@
+@import "../styles/tokens.css";
+@import "../styles/motion.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #070B12;
-  --foreground: #f8fafc;
+@layer base {
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  body {
+    background-color: var(--bg-app);
+    color: #F8FAFC;
+    font-family: var(--font-ui);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* All monospace fonts use tabular-nums so prices, clocks and PnL never jitter */
+  font-mono,
+  .font-mono,
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Visible accessible focus rings */
+  :focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  overflow-x: hidden;
-}
-
-/* Custom scrollbars */
+/* Custom Minimalist Dark Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0A0E17;
+  background: var(--bg-app);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #25334D;
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3B82F6;
+  background: rgba(255, 255, 255, 0.25);
 }
 
-/* Glassmorphism card utility from JSE UI Suite */
-.glass-card {
-  background: rgba(17, 24, 39, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+/* Base Card Presentation (Consistent 12px radius, subtle border, one shadow level) */
+.card-surface {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-ui);
+  box-shadow: var(--shadow-ui);
 }
 
-.glass-card-hover {
-  background: rgba(17, 24, 39, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  transition: all 0.2s ease;
+.card-surface-subtle {
+  background-color: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-ui);
 }
 
-.glass-card-hover:hover {
-  background: rgba(22, 31, 51, 0.9);
-  border-color: rgba(6, 182, 212, 0.3);
-}
-
-/* Neon glow effects */
-.neon-glow-cyan {
-  box-shadow: 0 0 16px -2px rgba(6, 182, 212, 0.35);
-}
-
-.neon-glow-emerald {
-  box-shadow: 0 0 16px -2px rgba(16, 185, 129, 0.35);
-}
-
-.neon-glow-rose {
-  box-shadow: 0 0 16px -2px rgba(244, 63, 94, 0.35);
-}
-
-.neon-glow-amber {
-  box-shadow: 0 0 16px -2px rgba(245, 158, 11, 0.35);
-}
-
-/* Glow effects */
-.glow-green {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
-}
-
-.glow-red {
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
-}
-
-.glow-blue {
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
-}
-
-.glow-gold {
-  box-shadow: 0 0 25px rgba(234, 179, 8, 0.3);
-}
-
-/* Continuous Market Ticker Tape */
-@keyframes ticker {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-ticker {
-  display: flex;
-  width: max-content;
-  animation: ticker 32s linear infinite;
-}
-
-.animate-ticker:hover {
-  animation-play-state: paused;
+.touch-target {
+  min-height: var(--min-touch-target);
+  min-width: var(--min-touch-target);
 }

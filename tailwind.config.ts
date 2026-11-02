@@ -9,33 +9,57 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        jse: {
-          bg: "#0A0E17",
-          surface: "#111726",
-          surfaceAlt: "#161F33",
-          card: "rgba(18, 26, 44, 0.75)",
-          border: "#1E293B",
-          borderLight: "rgba(255, 255, 255, 0.08)",
-          cyan: "#00F0FF",
-          emerald: "#10B981",
-          rose: "#F43F5E",
-          amber: "#F59E0B",
-          indigo: "#6366F1",
+        app: "var(--bg-app)",
+        surface: {
+          DEFAULT: "var(--bg-surface)",
+          elevated: "var(--bg-surface-elevated)",
+          subtle: "var(--bg-surface-subtle)",
         },
-        trading: {
-          green: "#10b981",
-          greenDark: "#059669",
-          red: "#ef4444",
-          redDark: "#dc2626",
-          darkBg: "#070B12",
-          cardBg: "#111726",
-          border: "#1E293B",
-          accent: "#00F0FF",
+        borderSubtle: "var(--border-subtle)",
+        borderStrong: "var(--border-strong)",
+        accent: {
+          DEFAULT: "var(--accent-primary)",
+          hover: "var(--accent-hover)",
+          active: "var(--accent-active)",
+          subtle: "var(--accent-subtle)",
         },
+        gain: {
+          DEFAULT: "var(--color-gain)",
+          subtle: "var(--color-gain-subtle)",
+          border: "var(--color-gain-border)",
+        },
+        loss: {
+          DEFAULT: "var(--color-loss)",
+          subtle: "var(--color-loss-subtle)",
+          border: "var(--color-loss-border)",
+        },
+        neutralMuted: "var(--color-neutral)",
+        warningMuted: "var(--color-warning)",
       },
-      animation: {
-        "pulse-fast": "pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "bounce-slight": "bounce 2s infinite",
+      borderRadius: {
+        ui: "var(--radius-ui)", // Strict 12px
+      },
+      boxShadow: {
+        ui: "var(--shadow-ui)",
+      },
+      fontFamily: {
+        sans: ["var(--font-inter)", "-apple-system", "sans-serif"],
+        mono: ["var(--font-mono)", "monospace"],
+      },
+      spacing: {
+        1: "4px",
+        2: "8px",
+        3: "12px",
+        4: "16px",
+        6: "24px",
+        8: "32px",
+        12: "48px",
+      },
+      minHeight: {
+        touch: "var(--min-touch-target)",
+      },
+      minWidth: {
+        touch: "var(--min-touch-target)",
       },
     },
   },

@@ -1,0 +1,141 @@
+/* ==========================================================================
+   JSE MOTION SYSTEM
+   Strict Rules: Animate only `transform` and `opacity`.
+   Duration: 150ms–400ms (Intro: 1.4s). Respects prefers-reduced-motion.
+   ========================================================================== */
+
+/* 1. Cinematic Intro Zoom (Screen A Splash) */
+@keyframes cinematicZoomIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.motion-intro-zoom {
+  animation: cinematicZoomIn 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 2. Fast Page / View Transition (Fade + Subtle Upward Glide) */
+@keyframes viewFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.motion-view-enter {
+  animation: viewFadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 3. Bottom Sheet Slide-Up (Mobile Order Ticket) */
+@keyframes bottomSheetEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.motion-sheet-enter {
+  animation: bottomSheetEnter 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 4. Modal Spring / Pop */
+@keyframes modalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.motion-modal-enter {
+  animation: modalPop 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 5. Real-Time Price Tick Flash (Gain & Loss) */
+@keyframes flashGain {
+  0% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes flashLoss {
+  0% {
+    opacity: 1;
+    transform: scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.motion-tick-gain {
+  animation: flashGain 300ms ease-out forwards;
+}
+
+.motion-tick-loss {
+  animation: flashLoss 300ms ease-out forwards;
+}
+
+/* 6. Standard Tactile Button Press */
+.motion-btn-press {
+  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms ease;
+}
+
+.motion-btn-press:active {
+  transform: scale(0.98);
+}
+
+/* 7. Slim Continuous Market Ticker */
+@keyframes slimTicker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-slim-ticker {
+  display: flex;
+  width: max-content;
+  animation: slimTicker 45s linear infinite;
+  will-change: transform;
+}
+
+.animate-slim-ticker:hover {
+  animation-play-state: paused;
+}
+
+/* Accessibility: Strict Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-slim-ticker {
+    animation: none !important;
+  }
+}
