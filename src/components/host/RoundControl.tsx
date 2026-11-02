@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { RoomState } from "@/types/trading";
 import { sounds } from "@/lib/audio";
 import {
@@ -8,20 +8,13 @@ import {
   Pause,
   SkipForward,
   RotateCcw,
-  Bot,
   Layers,
 } from "lucide-react";
-import {
-  isBotSimulationRunning,
-  startBotSimulation,
-  stopBotSimulation,
-} from "@/lib/sync/botSimulator";
 
 interface RoundControlProps {
   room: RoomState;
   onUpdateStatus: (status: RoomState["status"]) => Promise<void>;
   onAdvanceRound: () => Promise<void>;
-  onSpawnBots: () => Promise<void>;
   onResetRoom: () => Promise<void>;
 }
 
@@ -29,25 +22,8 @@ export const RoundControl: React.FC<RoundControlProps> = ({
   room,
   onUpdateStatus,
   onAdvanceRound,
-  onSpawnBots,
   onResetRoom,
 }) => {
-  const [botsActive, setBotsActive] = useState(false);
-
-  useEffect(() => {
-    setBotsActive(isBotSimulationRunning());
-  }, []);
-
-  const toggleBots = () => {
-    if (botsActive) {
-      stopBotSimulation();
-      setBotsActive(false);
-    } else {
-      startBotSimulation(room.code);
-      setBotsActive(true);
-    }
-  };
-
   const handleStartRound = () => {
     sounds.playBell();
     onUpdateStatus("ACTIVE");
@@ -118,24 +94,11 @@ export const RoundControl: React.FC<RoundControlProps> = ({
 
           <button
             type="button"
-            onClick={toggleBots}
-            className={`min-h-touch px-3 py-2 rounded-ui border text-xs font-bold uppercase tracking-wider motion-btn-press flex items-center gap-1.5 ${
-              botsActive
-                ? "bg-accent text-white border-accent"
-                : "bg-surface-subtle hover:bg-surface border-borderSubtle text-neutralMuted hover:text-white"
-            }`}
-          >
-            <Bot className="w-3.5 h-3.5" />
-            <span>{botsActive ? "AI Bots Active" : "Spawn 30 Bots"}</span>
-          </button>
-
-          <button
-            type="button"
             onClick={onResetRoom}
             className="min-h-touch px-3 py-2 bg-surface-subtle hover:bg-surface border border-borderSubtle text-neutralMuted hover:text-white font-bold text-xs uppercase tracking-wider rounded-ui motion-btn-press flex items-center gap-1.5"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset</span>
+            <span>Reset Floor</span>
           </button>
         </div>
       </div>

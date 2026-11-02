@@ -109,12 +109,16 @@ function PlayRoomContent() {
     setPlayerId(pid);
 
     const name = searchParams.get("name") || localStorage.getItem("trading_sim_player_name") || "Student Trader";
+    const email = searchParams.get("email") || localStorage.getItem("trading_sim_player_email") || undefined;
+    const photoURL = searchParams.get("photo") || localStorage.getItem("trading_sim_player_photo") || undefined;
     const desk =
       (searchParams.get("desk") as StudentDesk) ||
       (localStorage.getItem("trading_sim_player_desk") as StudentDesk) ||
       "tech_analyst";
 
     localStorage.setItem("trading_sim_player_name", name);
+    if (email) localStorage.setItem("trading_sim_player_email", email);
+    if (photoURL) localStorage.setItem("trading_sim_player_photo", photoURL);
     localStorage.setItem("trading_sim_player_desk", desk);
 
     const deskSetup = DESK_STARTING_PORTFOLIOS[desk] || {
@@ -136,6 +140,8 @@ function PlayRoomContent() {
     const initialPortfolio: PlayerPortfolio = {
       id: pid,
       name,
+      email,
+      photoURL,
       desk,
       cash: deskSetup.cash,
       shares: { ...deskSetup.shares },

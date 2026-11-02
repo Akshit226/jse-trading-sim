@@ -1,6 +1,15 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getDatabase, Database, connectDatabaseEmulator, ref, onValue } from "firebase/database";
 import { getAnalytics, isSupported, Analytics } from "firebase/analytics";
+import {
+  getAuth,
+  Auth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  User,
+  onAuthStateChanged,
+} from "firebase/auth";
 
 const isEmulator = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true";
 const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || (isEmulator ? "demo-jse-trading" : "jse-trading-sim");
@@ -28,11 +37,15 @@ export const isFirebaseConfigured = Boolean(
 let app: FirebaseApp | null = null;
 let database: Database | null = null;
 let analytics: Analytics | null = null;
+export let auth: Auth | null = null;
+export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
 if (typeof window !== "undefined" && (isFirebaseConfigured || isEmulator)) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     database = getDatabase(app);
+    auth = getAuth(app);
 
     if (isEmulator) {
       const host = process.env.NEXT_PUBLIC_FIREBASE_EMULATOR_HOST || "127.0.0.1";
@@ -66,6 +79,44 @@ export interface FirebaseConnectionStatus {
   permissionGranted: boolean;
   permissionDenied: boolean;
   error?: string;
+}
+
+export async function loginWithGoogle(): Promise<{
+  name: string;
+  email: string;
+  uid: string;
+  photoURL?: string;
+}> {
+  if (!auth) {
+    throw new Error("Firebase Authentication is not ready. Please check connection.");
+  }
+
+  const result = await signInWithPopup(auth, googleProvider);
+  const user = result.user;
+
+  // Extract legitimate name from Google account:
+  // 1. user.displayName (e.g. "Akshit Singh")
+  // 2. Parse from verified email address (e.g. "akshit.singh@jainuniversity.ac.in" -> "Akshit Singh")
+  let verifiedName = user.displayName;
+  if (!verifiedName && user.email) {
+    const localPart = user.email.split("@")[0];
+    verifiedName = localPart
+      .replace(/[._\-]/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  return {
+    name: verifiedName || "Verified Student",
+    email: user.email || "",
+    uid: user.uid,
+    photoURL: user.photoURL || undefined,
+  };
+}
+
+export async function logoutGoogle(): Promise<void> {
+  if (auth) {
+    await signOut(auth);
+  }
 }
 
 export function subscribeToFirebaseConnection(

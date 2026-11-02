@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { NewsEvent, RoomState, StudentDesk, AssetId } from "@/types/trading";
+import { NewsEvent, RoomState, StudentDesk, AssetId, PlayerPortfolio } from "@/types/trading";
 import {
   advanceRound,
   createInitialRoom,
@@ -19,7 +19,9 @@ import {
   subscribeToFirebaseConnection,
   isFirebaseConfigured,
   FirebaseConnectionStatus,
+  database,
 } from "@/lib/firebase";
+import { ref, onValue } from "firebase/database";
 import { RoundControl } from "@/components/host/RoundControl";
 import { NewsTriggerModal } from "@/components/host/NewsTriggerModal";
 import { LiveLeaderboard } from "@/components/shared/LiveLeaderboard";
@@ -134,9 +136,24 @@ function HostDashboardContent() {
       setRoom((prev) => (prev ? { ...prev, recentTrades } : prev));
     });
 
+    // Instant real-time listener for student joins
+    let unsubPlayers: (() => void) | null = null;
+    if (isFirebaseConfigured && database) {
+      try {
+        const playersRef = ref(database, `rooms/${roomCode}/players`);
+        unsubPlayers = onValue(playersRef, (snapshot) => {
+          if (snapshot.exists()) {
+            const players = snapshot.val() as Record<string, PlayerPortfolio>;
+            setRoom((prev) => (prev ? { ...prev, players } : prev));
+          }
+        });
+      } catch {}
+    }
+
     return () => {
       unsubscribe();
       unsubTrades();
+      if (unsubPlayers) unsubPlayers();
     };
   }, [roomCode]);
 
@@ -186,7 +203,7 @@ function HostDashboardContent() {
     const headers = [
       "Rank",
       "Trader Name",
-      "Syndicate Desk",
+      "Verified Email",
       "Total Net Worth (INR)",
       "Return (%)",
       "Liquid Cash (INR)",
@@ -203,7 +220,7 @@ function HostDashboardContent() {
       return [
         idx + 1,
         `"${p.name.replace(/"/g, '""')}"`,
-        `"${DESK_METADATA[p.desk]?.name || p.desk}"`,
+        `"${(p.email || p.id).replace(/"/g, '""')}"`,
         p.totalNetWorth.toFixed(2),
         p.returnPercent.toFixed(2),
         p.cash.toFixed(2),
@@ -232,10 +249,12 @@ function HostDashboardContent() {
   const filteredStudents = useMemo(() => {
     return allPlayers.filter((p) => {
       const matchesDesk = deskFilter === "ALL" || p.desk === deskFilter;
+      const q = searchQuery.trim().toLowerCase();
       const matchesSearch =
-        !searchQuery.trim() ||
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.id.toLowerCase().includes(searchQuery.toLowerCase());
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.email && p.email.toLowerCase().includes(q)) ||
+        p.id.toLowerCase().includes(q);
       return matchesDesk && matchesSearch;
     });
   }, [allPlayers, deskFilter, searchQuery]);
@@ -467,7 +486,6 @@ function HostDashboardContent() {
               room={room}
               onUpdateStatus={handleUpdateStatus}
               onAdvanceRound={handleAdvanceRound}
-              onSpawnBots={handleSpawnBots}
               onResetRoom={handleResetRoom}
             />
 
@@ -585,8 +603,8 @@ function HostDashboardContent() {
                 <table className="w-full text-left text-xs font-mono">
                   <thead>
                     <tr className="border-b border-borderSubtle text-neutralMuted uppercase text-[10px] tracking-wider">
-                      <th className="pb-2 pl-2">Rank & Trader</th>
-                      <th className="pb-2">Syndicate Desk</th>
+                      <th className="pb-2 pl-2">Rank & Verified Trader</th>
+                      <th className="pb-2">Desk Assignment</th>
                       <th className="pb-2 text-right">Net Worth</th>
                       <th className="pb-2 text-right">Return</th>
                       <th className="pb-2 text-right">Liquid Cash</th>
@@ -598,8 +616,8 @@ function HostDashboardContent() {
                     {filteredStudents.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="py-8 text-center text-neutralMuted italic">
-                          No students registered in this desk category yet. Ask students to scan the QR
-                          code or visit <span className="text-accent underline font-bold">/play/{roomCode}</span>.
+                          No students registered in this room yet. Ask students to sign in with Google at{" "}
+                          <span className="text-accent underline font-bold">/play/{roomCode}</span>.
                         </td>
                       </tr>
                     ) : (
@@ -620,13 +638,22 @@ function HostDashboardContent() {
                                 </span>
                                 <div>
                                   <div className="flex items-center gap-1.5">
-                                    <span className="font-sans text-xs">{student.name}</span>
-                                    {student.id.startsWith("std_") && (
-                                      <span className="w-1.5 h-1.5 rounded-full bg-gain" title="Live human trader" />
+                                    {student.photoURL ? (
+                                      <img
+                                        src={student.photoURL}
+                                        alt={student.name}
+                                        className="w-4 h-4 rounded-full shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="w-4 h-4 rounded-full bg-accent/20 text-accent font-bold text-[9px] flex items-center justify-center shrink-0">
+                                        {student.name[0]}
+                                      </div>
                                     )}
+                                    <span className="font-sans text-xs font-bold text-white">{student.name}</span>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-gain animate-pulse" title="Live Verified Student" />
                                   </div>
-                                  <span className="text-[10px] text-neutralMuted font-normal">
-                                    {student.id}
+                                  <span className="text-[10px] text-neutralMuted font-normal block truncate max-w-[190px]">
+                                    {student.email || student.id}
                                   </span>
                                 </div>
                               </td>

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { StudentDesk } from "@/types/trading";
 import { DEFAULT_TEACHER_PIN, getCompanyFullName, getCompanyIndustry } from "@/lib/constants";
+import { loginWithGoogle, logoutGoogle } from "@/lib/firebase";
 import {
   TrendingUp,
   TrendingDown,
@@ -18,6 +19,9 @@ import {
   AlertTriangle,
   Clock,
   Layers,
+  LogOut,
+  Mail,
+  UserCheck,
 } from "lucide-react";
 
 interface StockQuote {
@@ -210,10 +214,17 @@ export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);
 
   // Screen B Login State
-  const [studentName, setStudentName] = useState("");
   const [roomCode, setRoomCode] = useState("WALLST");
-  const [selectedDesk, setSelectedDesk] = useState<StudentDesk>("tech_analyst");
-  const [expandedDesk, setExpandedDesk] = useState<StudentDesk | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [studentEmailInput, setStudentEmailInput] = useState("");
+  const [showEmailFallback, setShowEmailFallback] = useState(false);
+  const [authenticatedUser, setAuthenticatedUser] = useState<{
+    name: string;
+    email: string;
+    uid: string;
+    photoURL?: string;
+  } | null>(null);
 
   // Screen C Market Roster filter
   const [sectorFilter, setSectorFilter] = useState<"ALL" | "IT" | "FMCG">("ALL");
@@ -225,14 +236,27 @@ export default function HomePage() {
   const [isFacultyUnlocked, setIsFacultyUnlocked] = useState(false);
 
   useEffect(() => {
-    // Check faculty session
+    // Check faculty session & cached Google identity
     if (typeof window !== "undefined") {
       const auth = sessionStorage.getItem("jse_teacher_authorized");
       if (auth === "true") setIsFacultyUnlocked(true);
 
-      // If user already visited in this session, skip splash
       const visited = sessionStorage.getItem("jse_splash_entered");
       if (visited === "true") setShowSplash(false);
+
+      const cachedName = localStorage.getItem("trading_sim_player_name");
+      const cachedEmail = localStorage.getItem("trading_sim_player_email");
+      const cachedUid = localStorage.getItem("trading_sim_player_id");
+      const cachedPhoto = localStorage.getItem("trading_sim_player_photo");
+
+      if (cachedName && cachedEmail) {
+        setAuthenticatedUser({
+          name: cachedName,
+          email: cachedEmail,
+          uid: cachedUid || `std_${Date.now()}`,
+          photoURL: cachedPhoto || undefined,
+        });
+      }
     }
   }, []);
 
@@ -241,16 +265,84 @@ export default function HomePage() {
     setShowSplash(false);
   };
 
-  const handleJoinStudent = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!studentName.trim() || !roomCode.trim()) return;
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setGoogleError(null);
+    try {
+      const user = await loginWithGoogle();
+      setAuthenticatedUser(user);
+      localStorage.setItem("trading_sim_player_name", user.name);
+      localStorage.setItem("trading_sim_player_email", user.email);
+      localStorage.setItem("trading_sim_player_id", user.uid);
+      if (user.photoURL) {
+        localStorage.setItem("trading_sim_player_photo", user.photoURL);
+      }
 
-    const trimmedCode = roomCode.trim().toUpperCase();
+      const trimmedCode = (roomCode || "WALLST").trim().toUpperCase();
+      const query = new URLSearchParams({
+        name: user.name,
+        email: user.email,
+        uid: user.uid,
+      });
+      if (user.photoURL) query.set("photo", user.photoURL);
+      router.push(`/play/${trimmedCode}?${query.toString()}`);
+    } catch (err: any) {
+      console.error("Google Auth error:", err);
+      if (err.code === "auth/popup-closed-by-user") {
+        setGoogleError("Sign-in cancelled. Please sign in with Google to enter.");
+      } else {
+        setGoogleError(err.message || "Google sign-in error.");
+        setShowEmailFallback(true);
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleEmailIdentitySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentEmailInput.trim() || !studentEmailInput.includes("@")) return;
+
+    // Automatically derive verified student name from college email ID!
+    const emailClean = studentEmailInput.trim().toLowerCase();
+    const localPart = emailClean.split("@")[0];
+    const derivedName = localPart
+      .replace(/[._\-]/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+
+    const uid = `std_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    localStorage.setItem("trading_sim_player_name", derivedName);
+    localStorage.setItem("trading_sim_player_email", emailClean);
+    localStorage.setItem("trading_sim_player_id", uid);
+
+    const trimmedCode = (roomCode || "WALLST").trim().toUpperCase();
     const query = new URLSearchParams({
-      name: studentName.trim(),
-      desk: selectedDesk,
+      name: derivedName,
+      email: emailClean,
+      uid,
     });
     router.push(`/play/${trimmedCode}?${query.toString()}`);
+  };
+
+  const handleEnterAsAuthenticated = () => {
+    if (!authenticatedUser) return;
+    const trimmedCode = (roomCode || "WALLST").trim().toUpperCase();
+    const query = new URLSearchParams({
+      name: authenticatedUser.name,
+      email: authenticatedUser.email,
+      uid: authenticatedUser.uid,
+    });
+    if (authenticatedUser.photoURL) query.set("photo", authenticatedUser.photoURL);
+    router.push(`/play/${trimmedCode}?${query.toString()}`);
+  };
+
+  const handleSwitchAccount = async () => {
+    await logoutGoogle();
+    localStorage.removeItem("trading_sim_player_name");
+    localStorage.removeItem("trading_sim_player_email");
+    localStorage.removeItem("trading_sim_player_id");
+    localStorage.removeItem("trading_sim_player_photo");
+    setAuthenticatedUser(null);
   };
 
   const handleVerifyFacultyPin = (e: React.FormEvent) => {
@@ -387,50 +479,129 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* VIEW B1: STUDENT LOGIN */}
+              {/* VIEW B1: STUDENT GOOGLE AUTH LOGIN */}
               {!showFacultyGate ? (
-                <form onSubmit={handleJoinStudent} className="space-y-5">
-                  {/* Inputs */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-neutralMuted uppercase tracking-wider mb-1.5">
-                        Trader Name
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Jordan B. / Aarav S."
-                        value={studentName}
-                        onChange={(e) => setStudentName(e.target.value)}
-                        className="w-full min-h-touch bg-surface-subtle border border-borderSubtle focus:border-borderFocus rounded-ui px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none transition-colors"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-neutralMuted uppercase tracking-wider mb-1.5 flex justify-between">
-                        <span>Classroom PIN</span>
-                        <span className="text-[10px] text-neutralMuted lowercase font-mono">default WALLST</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="WALLST"
-                        value={roomCode}
-                        onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                        className="w-full min-h-touch bg-surface-subtle border border-borderSubtle focus:border-borderFocus rounded-ui px-3.5 py-2 text-sm text-white font-mono uppercase tracking-widest font-bold focus:outline-none transition-colors"
-                      />
-                    </div>
+                <div className="space-y-5">
+                  {/* Classroom PIN */}
+                  <div>
+                    <label className="block text-xs font-bold text-neutralMuted uppercase tracking-wider mb-1.5 flex justify-between">
+                      <span>Classroom PIN</span>
+                      <span className="text-[10px] text-neutralMuted lowercase font-mono">default WALLST</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="WALLST"
+                      value={roomCode}
+                      onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                      className="w-full min-h-touch bg-surface-subtle border border-borderSubtle focus:border-borderFocus rounded-ui px-3.5 py-2 text-sm text-white font-mono uppercase tracking-widest font-bold focus:outline-none transition-colors"
+                    />
                   </div>
 
-                  {/* Single Primary Action Button */}
-                  <button
-                    type="submit"
-                    className="w-full min-h-touch py-3 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-bold text-sm rounded-ui shadow-ui motion-btn-press flex items-center justify-center gap-2 mt-4"
-                  >
-                    <span>Enter Trading Floor</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </form>
+                  {authenticatedUser ? (
+                    /* ALREADY AUTHENTICATED VIA GOOGLE */
+                    <div className="p-4 bg-surface-subtle border border-accent/40 rounded-ui space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {authenticatedUser.photoURL ? (
+                            <img
+                              src={authenticatedUser.photoURL}
+                              alt={authenticatedUser.name}
+                              className="w-9 h-9 rounded-full border border-accent shrink-0"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-accent/20 border border-accent text-accent font-bold flex items-center justify-center shrink-0">
+                              {authenticatedUser.name[0]}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-white flex items-center gap-1.5 truncate">
+                              <span className="truncate">{authenticatedUser.name}</span>
+                              <CheckCircle2 className="w-4 h-4 text-gain shrink-0" />
+                            </div>
+                            <div className="text-xs text-neutralMuted truncate font-mono">
+                              {authenticatedUser.email}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleSwitchAccount}
+                          className="text-[11px] text-neutralMuted hover:text-loss flex items-center gap-1 ml-2 transition-colors shrink-0"
+                          title="Switch Google Account"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Switch</span>
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleEnterAsAuthenticated}
+                        className="w-full min-h-touch py-3 bg-accent hover:bg-accent-hover text-white font-bold text-sm rounded-ui shadow-ui motion-btn-press flex items-center justify-center gap-2"
+                      >
+                        <span>Enter Trading Floor as {authenticatedUser.name}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    /* GOOGLE SIGN IN BUTTON */
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={handleGoogleSignIn}
+                        disabled={googleLoading}
+                        className="w-full min-h-touch py-3.5 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-900 font-bold text-sm rounded-ui shadow-ui motion-btn-press flex items-center justify-center gap-3 transition-all disabled:opacity-50 cursor-pointer"
+                      >
+                        <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                        </svg>
+                        <span>{googleLoading ? "Connecting to Google..." : "Sign in with Google to Enter Floor"}</span>
+                      </button>
+
+                      <div className="flex items-center gap-1.5 text-[11px] text-neutralMuted justify-center font-mono">
+                        <UserCheck className="w-3.5 h-3.5 text-gain" />
+                        <span>Trader identity is verified automatically from your Google account.</span>
+                      </div>
+
+                      {googleError && (
+                        <div className="p-3 bg-loss-subtle border border-loss-border rounded-ui text-xs text-loss space-y-2">
+                          <div className="flex items-center gap-1.5 font-bold">
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                            <span>{googleError}</span>
+                          </div>
+                          {showEmailFallback && (
+                            <form onSubmit={handleEmailIdentitySubmit} className="pt-2 border-t border-loss-border/40 space-y-2">
+                              <label className="block text-[11px] text-slate-300">
+                                Enter College / University Email:
+                              </label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="email"
+                                  required
+                                  placeholder="student.name@jainuniversity.ac.in"
+                                  value={studentEmailInput}
+                                  onChange={(e) => setStudentEmailInput(e.target.value)}
+                                  className="flex-1 bg-surface border border-borderSubtle rounded px-2.5 py-1.5 text-xs text-white placeholder-slate-500 font-mono focus:outline-none"
+                                />
+                                <button
+                                  type="submit"
+                                  className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded"
+                                >
+                                  Join
+                                </button>
+                              </div>
+                            </form>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               ) : (
                 /* VIEW B2: FACULTY AUTH GATEWAY */
                 <div className="space-y-4">

@@ -77,6 +77,8 @@ export interface TradeOrder {
 export interface PlayerPortfolio {
   id: string;
   name: string;
+  email?: string;
+  photoURL?: string;
   desk: StudentDesk;
   cash: number;
   shares: Record<AssetId, number>;
