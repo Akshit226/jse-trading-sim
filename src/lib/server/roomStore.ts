@@ -1,3 +1,6 @@
+import fs from "fs";
+import path from "path";
+import os from "os";
 import {
   Asset,
   AssetId,
@@ -33,32 +36,73 @@ if (!globalThis.globalRoomStore) {
   globalThis.globalRoomStore = rooms;
 }
 
+function getRoomFilePath(upper: string): string {
+  const tmpDir = os.tmpdir();
+  return path.join(tmpDir, `jse_room_${upper}.json`);
+}
+
+function readRoomFromDisk(upper: string): RoomState | null {
+  try {
+    const file = getRoomFilePath(upper);
+    if (fs.existsSync(file)) {
+      const content = fs.readFileSync(file, "utf8");
+      if (content) {
+        return JSON.parse(content) as RoomState;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function persistRoomToDisk(room: RoomState): void {
+  try {
+    const file = getRoomFilePath(room.code.toUpperCase());
+    fs.writeFileSync(file, JSON.stringify(room), "utf8");
+  } catch {}
+}
+
 export function getServerRoom(code: string): RoomState {
   const upper = code.toUpperCase();
-  if (!rooms.has(upper)) {
-    const newRoom: RoomState = {
-      code: upper,
-      status: "LOBBY",
-      currentRound: 1,
-      totalRounds: TOTAL_ROUNDS,
-      roundTimeRemaining: DEFAULT_ROUND_DURATION,
-      roundDurationSec: DEFAULT_ROUND_DURATION,
-      currentNews: null,
-      newsHistory: [],
-      recentTrades: [],
-      assets: JSON.parse(JSON.stringify(INITIAL_ASSETS)),
-      players: {},
-    };
-    rooms.set(upper, newRoom);
+  if (rooms.has(upper)) {
+    return rooms.get(upper)!;
   }
-  return rooms.get(upper)!;
+
+  // Attempt to load from disk in serverless containers
+  const diskRoom = readRoomFromDisk(upper);
+  if (diskRoom) {
+    rooms.set(upper, diskRoom);
+    return diskRoom;
+  }
+
+  const newRoom: RoomState = {
+    code: upper,
+    status: "LOBBY",
+    currentRound: 1,
+    totalRounds: TOTAL_ROUNDS,
+    roundTimeRemaining: DEFAULT_ROUND_DURATION,
+    roundDurationSec: DEFAULT_ROUND_DURATION,
+    currentNews: null,
+    newsHistory: [],
+    recentTrades: [],
+    assets: JSON.parse(JSON.stringify(INITIAL_ASSETS)),
+    players: {},
+  };
+  rooms.set(upper, newRoom);
+  persistRoomToDisk(newRoom);
+  return newRoom;
 }
 
 export function setServerRoom(room: RoomState): void {
-  rooms.set(room.code.toUpperCase(), room);
+  const upper = room.code.toUpperCase();
+  rooms.set(upper, room);
+  persistRoomToDisk(room);
 }
 
-export function serverJoinPlayer(code: string, player: PlayerPortfolio): RoomState {
+export function serverJoinPlayer(
+  code: string,
+  player: PlayerPortfolio,
+  clientStatus?: RoomState["status"]
+): RoomState {
   const room = getServerRoom(code);
 
   // If new player has no shares yet, grant the initial asymmetric desk portfolio
@@ -90,8 +134,15 @@ export function serverJoinPlayer(code: string, player: PlayerPortfolio): RoomSta
     map[p.id] = p;
   });
 
+  // Preserve status: Never downgrade an ACTIVE or PAUSED room back to LOBBY
+  let resolvedStatus = room.status;
+  if (clientStatus === "ACTIVE" && resolvedStatus === "LOBBY") {
+    resolvedStatus = "ACTIVE";
+  }
+
   const updated: RoomState = {
     ...room,
+    status: resolvedStatus,
     players: map,
   };
   setServerRoom(updated);
@@ -103,8 +154,39 @@ export function serverSubmitOrder(
   order: TradeOrder
 ): { success: boolean; error?: string; room?: RoomState } {
   const room = getServerRoom(code);
-  const player = room.players[order.playerId];
-  if (!player) return { success: false, error: "Player not registered in this room" };
+  let player = room.players[order.playerId];
+
+  // Auto-register student if missing in this container instance
+  if (!player) {
+    const desk = order.desk || "tech_analyst";
+    const deskSetup = DESK_STARTING_PORTFOLIOS[desk];
+    player = {
+      id: order.playerId,
+      name: order.playerName || "Student Trader",
+      desk,
+      cash: deskSetup ? deskSetup.cash : STARTING_CASH,
+      shares: deskSetup ? { ...deskSetup.shares } : {
+        MPHASIS: 0,
+        COFORGE: 0,
+        OFSS: 0,
+        LTTS: 0,
+        TATAELXSI: 0,
+        COLPAL: 0,
+        PGHH: 0,
+        RADICO: 0,
+        UBL: 0,
+        GILLETTE: 0,
+      },
+      totalNetWorth: STARTING_CASH,
+      initialNetWorth: STARTING_CASH,
+      returnPercent: 0,
+      totalTrades: 0,
+      realizedPnL: 0,
+      rank: 1,
+      lastActive: Date.now(),
+    };
+    room.players[order.playerId] = player;
+  }
 
   const asset = room.assets[order.assetId];
   if (!asset) return { success: false, error: "Asset not found" };
@@ -136,8 +218,12 @@ export function serverSubmitOrder(
 
   const updatedTrades = [order, ...room.recentTrades].slice(0, 30);
 
+  // If order is placed in round 1+, market is actively trading
+  const status = room.status === "PAUSED" ? "PAUSED" : "ACTIVE";
+
   const updatedRoom: RoomState = {
     ...room,
+    status,
     assets: updatedAssets,
     players: rankedMap,
     recentTrades: updatedTrades,

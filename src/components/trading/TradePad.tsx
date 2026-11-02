@@ -254,9 +254,23 @@ export const TradePad: React.FC<TradePadProps> = ({
 
       {/* Inline Validation Notice */}
       {validationError && (
-        <div className="p-2.5 rounded-ui bg-surface-subtle border border-borderSubtle text-xs text-neutralMuted flex items-center gap-2">
-          <AlertCircle className="w-3.5 h-3.5 text-warningMuted shrink-0" />
-          <span>{validationError}</span>
+        <div className="p-2.5 rounded-ui bg-surface-subtle border border-borderSubtle text-xs text-neutralMuted flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <AlertCircle className="w-3.5 h-3.5 text-warningMuted shrink-0" />
+            <span className="truncate">{validationError}</span>
+          </div>
+          {room.status === "LOBBY" && (
+            <button
+              type="button"
+              onClick={async () => {
+                const { updateRoomStatus } = await import("@/lib/sync/syncService");
+                await updateRoomStatus(room.code, "ACTIVE");
+              }}
+              className="px-2.5 py-1 rounded bg-accent-subtle hover:bg-accent text-accent hover:text-white border border-accent/20 font-mono text-[10px] font-bold shrink-0 transition-colors"
+            >
+              Start Round 1
+            </button>
+          )}
         </div>
       )}
 

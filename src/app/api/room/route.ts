@@ -24,7 +24,9 @@ export async function POST(req: NextRequest) {
     const upperCode = (code || "WALLST").toUpperCase();
 
     if (action === "JOIN") {
-      const room = serverJoinPlayer(upperCode, data);
+      const playerPayload = data?.player || data;
+      const clientStatus = data?.clientStatus;
+      const room = serverJoinPlayer(upperCode, playerPayload, clientStatus);
       return NextResponse.json({ success: true, room });
     }
 

@@ -161,6 +161,11 @@ export function subscribeToRoom(
   const safeOnUpdate = (rawRoom: RoomState) => {
     if (!rawRoom) return;
     const clean = normalizeRoomState(rawRoom);
+    const current = inMemoryRooms.get(upperCode);
+    // Guard against cold serverless lambdas resetting an active session back to LOBBY
+    if (current && current.status === "ACTIVE" && clean.status === "LOBBY") {
+      clean.status = "ACTIVE";
+    }
     onUpdate(clean);
   };
 
@@ -251,6 +256,7 @@ export async function joinPlayer(
   player: PlayerPortfolio
 ): Promise<RoomState> {
   const upperCode = roomCode.toUpperCase();
+  const currentLocal = inMemoryRooms.get(upperCode);
 
   // Instant direct Firebase RTDB write for immediate multi-client sync
   if (typeof window !== "undefined" && isFirebaseConfigured && database) {
@@ -265,11 +271,22 @@ export async function joinPlayer(
       const res = await fetch("/api/room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "JOIN", code: upperCode, data: player }),
+        body: JSON.stringify({
+          action: "JOIN",
+          code: upperCode,
+          data: {
+            player,
+            clientStatus: currentLocal?.status,
+          },
+        }),
       });
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.room) {
+          // Guard: if local state was already ACTIVE, never downgrade to LOBBY
+          if (currentLocal?.status === "ACTIVE" && json.room.status === "LOBBY") {
+            json.room.status = "ACTIVE";
+          }
           await saveRoomState(json.room);
           return json.room;
         }
@@ -278,7 +295,7 @@ export async function joinPlayer(
   } else {
     try {
       const { serverJoinPlayer } = await import("../server/roomStore");
-      return serverJoinPlayer(upperCode, player);
+      return serverJoinPlayer(upperCode, player, currentLocal?.status);
     } catch {}
   }
 
@@ -297,6 +314,14 @@ export async function submitOrder(
 ): Promise<{ success: boolean; error?: string; room?: RoomState }> {
   const upperCode = roomCode.toUpperCase();
 
+  // Instant direct Firebase order broadcast if connected
+  if (typeof window !== "undefined" && isFirebaseConfigured && database) {
+    try {
+      const orderRef = ref(database, `rooms/${upperCode}/recentTrades/${order.id}`);
+      set(orderRef, order).catch(() => {});
+    } catch {}
+  }
+
   if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/room", {
@@ -308,15 +333,91 @@ export async function submitOrder(
         const json = await res.json();
         if (json.success && json.room) {
           await saveRoomState(json.room);
+          return json;
         }
-        return json;
       }
-    } catch {}
+    } catch (err) {
+      console.warn("Server submitOrder fetch error, running local fallback:", err);
+    }
   } else {
     try {
       const { serverSubmitOrder } = await import("../server/roomStore");
       return serverSubmitOrder(upperCode, order);
     } catch {}
+  }
+
+  // Fallback local execution: guarantees the student order never fails or blocks
+  const existingRoom = (await getRoomState(upperCode)) || inMemoryRooms.get(upperCode);
+  if (existingRoom && existingRoom.assets && existingRoom.assets[order.assetId]) {
+    try {
+      const { applyTradeToAsset } = await import("../engine/pricingEngine");
+      const { executeTradeOnPortfolio, rankPlayers, recalculatePortfolio, validateTrade } =
+        await import("../engine/portfolioCalc");
+
+      let player = existingRoom.players[order.playerId];
+      if (!player) {
+        const { DESK_STARTING_PORTFOLIOS, STARTING_CASH } = await import("../constants");
+        const deskSetup = DESK_STARTING_PORTFOLIOS[order.desk];
+        player = {
+          id: order.playerId,
+          name: order.playerName,
+          desk: order.desk,
+          cash: deskSetup ? deskSetup.cash : STARTING_CASH,
+          shares: deskSetup ? { ...deskSetup.shares } : ({} as any),
+          totalNetWorth: STARTING_CASH,
+          initialNetWorth: STARTING_CASH,
+          returnPercent: 0,
+          totalTrades: 0,
+          realizedPnL: 0,
+          rank: 1,
+          lastActive: Date.now(),
+        };
+      }
+
+      const asset = existingRoom.assets[order.assetId];
+      const validation = validateTrade(player, asset, order.side, order.quantity);
+      if (!validation.valid) {
+        return { success: false, error: validation.error };
+      }
+
+      const updatedAsset = applyTradeToAsset(asset, order);
+      const updatedPlayer = executeTradeOnPortfolio(player, order);
+
+      const updatedAssets = {
+        ...existingRoom.assets,
+        [asset.id]: updatedAsset,
+      };
+
+      const recalculatedPlayers: Record<string, PlayerPortfolio> = {};
+      for (const pid of Object.keys(existingRoom.players)) {
+        const p = pid === player.id ? updatedPlayer : existingRoom.players[pid];
+        recalculatedPlayers[pid] = recalculatePortfolio(p, updatedAssets);
+      }
+      if (!recalculatedPlayers[player.id]) {
+        recalculatedPlayers[player.id] = recalculatePortfolio(updatedPlayer, updatedAssets);
+      }
+
+      const ranked = rankPlayers(recalculatedPlayers);
+      const rankedMap: Record<string, PlayerPortfolio> = {};
+      ranked.forEach((p) => {
+        rankedMap[p.id] = p;
+      });
+
+      const updatedTrades = [order, ...existingRoom.recentTrades].slice(0, 30);
+
+      const updatedRoom: RoomState = {
+        ...existingRoom,
+        status: existingRoom.status === "PAUSED" ? "PAUSED" : "ACTIVE",
+        assets: updatedAssets,
+        players: rankedMap,
+        recentTrades: updatedTrades,
+      };
+
+      await saveRoomState(updatedRoom);
+      return { success: true, room: updatedRoom };
+    } catch (err) {
+      console.error("Local fallback trade execution error:", err);
+    }
   }
 
   return { success: false, error: "Network error" };
@@ -427,6 +528,19 @@ export async function updateRoomStatus(
 ): Promise<RoomState> {
   const upperCode = roomCode.toUpperCase();
 
+  // Instant local memory update for zero-latency UI response
+  const existing = inMemoryRooms.get(upperCode) || createInitialRoom(upperCode);
+  existing.status = status;
+  inMemoryRooms.set(upperCode, existing);
+
+  // Direct Firebase RTDB status update if connected
+  if (typeof window !== "undefined" && isFirebaseConfigured && database) {
+    try {
+      const statusRef = ref(database, `rooms/${upperCode}/status`);
+      set(statusRef, status).catch(() => {});
+    } catch {}
+  }
+
   if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/room", {
@@ -453,10 +567,8 @@ export async function updateRoomStatus(
     } catch {}
   }
 
-  const local = inMemoryRooms.get(upperCode) || createInitialRoom(upperCode);
-  local.status = status;
-  await saveRoomState(local);
-  return local;
+  await saveRoomState(existing);
+  return existing;
 }
 
 /**
