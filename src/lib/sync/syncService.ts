@@ -166,6 +166,11 @@ export function subscribeToRoom(
     if (current && current.status === "ACTIVE" && clean.status === "LOBBY") {
       clean.status = "ACTIVE";
     }
+    // Guard against cold serverless lambdas wiping out registered players
+    if (current && current.players) {
+      clean.players = { ...current.players, ...clean.players };
+    }
+    inMemoryRooms.set(upperCode, clean);
     onUpdate(clean);
   };
 

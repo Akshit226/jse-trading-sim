@@ -61,6 +61,7 @@ function PlayRoomContent() {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [playerId, setPlayerId] = useState<string>("");
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [fallbackPlayer, setFallbackPlayer] = useState<PlayerPortfolio | null>(null);
 
   // Mobile Bottom Tab: Market | Trade | Portfolio | Leaderboard | News
   const [mobileTab, setMobileTab] = useState<"market" | "trade" | "portfolio" | "leaderboard" | "news">("trade");
@@ -142,8 +143,13 @@ function PlayRoomContent() {
       lastActive: Date.now(),
     };
 
+    setFallbackPlayer(initialPortfolio);
+
     joinPlayer(roomCode, initialPortfolio).then((updatedRoom) => {
       setRoom(updatedRoom);
+      if (updatedRoom.players?.[pid]) {
+        setFallbackPlayer(updatedRoom.players[pid]);
+      }
     });
   }, [roomCode, searchParams]);
 
@@ -151,9 +157,12 @@ function PlayRoomContent() {
   useEffect(() => {
     const unsubscribe = subscribeToRoom(roomCode, (updatedRoom) => {
       setRoom(updatedRoom);
+      if (playerId && updatedRoom.players?.[playerId]) {
+        setFallbackPlayer(updatedRoom.players[playerId]);
+      }
     });
     return () => unsubscribe();
-  }, [roomCode]);
+  }, [roomCode, playerId]);
 
   // Toggle sound
   const toggleSound = () => {
@@ -165,15 +174,20 @@ function PlayRoomContent() {
 
   // Get current player portfolio
   const currentPlayer = useMemo(() => {
-    if (!room || !playerId) return null;
-    return room.players?.[playerId] || null;
-  }, [room, playerId]);
+    if (room?.players?.[playerId]) {
+      return room.players[playerId];
+    }
+    return fallbackPlayer;
+  }, [room, playerId, fallbackPlayer]);
 
   // Handle Trade Execution
   const handleExecuteTrade = async (order: TradeOrder) => {
     const res = await submitOrder(roomCode, order);
     if (res.success && res.room) {
       setRoom(res.room);
+      if (playerId && res.room.players?.[playerId]) {
+        setFallbackPlayer(res.room.players[playerId]);
+      }
       return { success: true };
     } else {
       sounds.playBell();
