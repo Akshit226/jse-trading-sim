@@ -183,13 +183,23 @@ export function subscribeToRoom(
     if (!rawRoom) return;
     const clean = normalizeRoomState(rawRoom);
     const current = inMemoryRooms.get(upperCode);
-    // Guard against cold serverless lambdas resetting an active session back to LOBBY
-    if (current && current.status === "ACTIVE" && clean.status === "LOBBY") {
-      clean.status = "ACTIVE";
-    }
-    // Guard against cold serverless lambdas wiping out registered players
-    if (current && current.players) {
-      clean.players = { ...current.players, ...clean.players };
+
+    // If an intentional clean reset occurred (empty room in LOBBY with no trades), do not resurrect old state
+    const isExplicitReset =
+      clean.status === "LOBBY" &&
+      clean.currentRound === 1 &&
+      clean.recentTrades.length === 0 &&
+      Object.keys(clean.players || {}).length === 0;
+
+    if (!isExplicitReset) {
+      // Guard against cold serverless lambdas resetting an active session back to LOBBY
+      if (current && current.status === "ACTIVE" && clean.status === "LOBBY") {
+        clean.status = "ACTIVE";
+      }
+      // Guard against cold serverless lambdas wiping out registered players
+      if (current && current.players) {
+        clean.players = { ...current.players, ...clean.players };
+      }
     }
     inMemoryRooms.set(upperCode, clean);
     onUpdate(clean);
@@ -842,6 +852,13 @@ export async function updateRoomStatus(
  */
 export async function resetRoomState(roomCode: string): Promise<RoomState> {
   const upperCode = roomCode.toUpperCase();
+  inMemoryRooms.delete(upperCode);
+
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.removeItem(STORAGE_PREFIX + upperCode);
+    } catch {}
+  }
 
   if (typeof window !== "undefined") {
     try {
