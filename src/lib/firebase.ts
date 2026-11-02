@@ -61,28 +61,78 @@ if (typeof window !== "undefined" && (isFirebaseConfigured || isEmulator)) {
   }
 }
 
+export interface FirebaseConnectionStatus {
+  connected: boolean;
+  permissionGranted: boolean;
+  permissionDenied: boolean;
+  error?: string;
+}
+
 export function subscribeToFirebaseConnection(
-  onStatusChange: (connected: boolean) => void
+  onStatusChange: (status: FirebaseConnectionStatus) => void
 ): () => void {
   if (typeof window !== "undefined" && database) {
     try {
       const connectedRef = ref(database, ".info/connected");
-      const unsubscribe = onValue(
+      const probeRef = ref(database, "rooms/WALLST/status");
+
+      let isConnected = false;
+      let hasPermission = false;
+      let isDenied = false;
+
+      const unsubConnected = onValue(
         connectedRef,
         (snap) => {
-          onStatusChange(Boolean(snap.val()));
+          isConnected = Boolean(snap.val());
+          onStatusChange({
+            connected: isConnected,
+            permissionGranted: hasPermission,
+            permissionDenied: isDenied,
+          });
         },
         () => {
-          onStatusChange(false);
+          onStatusChange({
+            connected: false,
+            permissionGranted: false,
+            permissionDenied: true,
+          });
         }
       );
-      return () => unsubscribe();
+
+      // Actively probe /rooms permission to verify if Google Cloud security rules permit read/write
+      const unsubProbe = onValue(
+        probeRef,
+        () => {
+          hasPermission = true;
+          isDenied = false;
+          onStatusChange({
+            connected: isConnected,
+            permissionGranted: true,
+            permissionDenied: false,
+          });
+        },
+        (err) => {
+          hasPermission = false;
+          isDenied = true;
+          onStatusChange({
+            connected: isConnected,
+            permissionGranted: false,
+            permissionDenied: true,
+            error: err.message,
+          });
+        }
+      );
+
+      return () => {
+        unsubConnected();
+        unsubProbe();
+      };
     } catch {
-      onStatusChange(false);
+      onStatusChange({ connected: false, permissionGranted: false, permissionDenied: true });
       return () => {};
     }
   }
-  onStatusChange(false);
+  onStatusChange({ connected: false, permissionGranted: false, permissionDenied: false });
   return () => {};
 }
 

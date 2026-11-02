@@ -54,6 +54,35 @@ function readRoomFromDisk(upper: string): RoomState | null {
   return null;
 }
 
+const FIREBASE_DB_URL =
+  process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL ||
+  "https://jse-trading-sim-default-rtdb.firebaseio.com";
+
+export async function fetchRemoteRoom(upper: string): Promise<RoomState | null> {
+  try {
+    const res = await fetch(`${FIREBASE_DB_URL}/rooms/${upper}.json`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.code && !data.error) {
+        return data as RoomState;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+export function pushRemoteRoom(room: RoomState): void {
+  try {
+    fetch(`${FIREBASE_DB_URL}/rooms/${room.code.toUpperCase()}.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(room),
+    }).catch(() => {});
+  } catch {}
+}
+
 function persistRoomToDisk(room: RoomState): void {
   try {
     const file = getRoomFilePath(room.code.toUpperCase());
@@ -96,6 +125,7 @@ export function setServerRoom(room: RoomState): void {
   const upper = room.code.toUpperCase();
   rooms.set(upper, room);
   persistRoomToDisk(room);
+  pushRemoteRoom(room);
 }
 
 export function serverJoinPlayer(

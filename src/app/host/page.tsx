@@ -14,7 +14,11 @@ import {
   triggerNewsEvent,
   updateRoomStatus,
 } from "@/lib/sync/syncService";
-import { subscribeToFirebaseConnection, isFirebaseConfigured } from "@/lib/firebase";
+import {
+  subscribeToFirebaseConnection,
+  isFirebaseConfigured,
+  FirebaseConnectionStatus,
+} from "@/lib/firebase";
 import { RoundControl } from "@/components/host/RoundControl";
 import { NewsTriggerModal } from "@/components/host/NewsTriggerModal";
 import { LiveLeaderboard } from "@/components/shared/LiveLeaderboard";
@@ -37,6 +41,7 @@ import {
   TrendingUp,
   TrendingDown,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import {
   formatINR,
@@ -59,9 +64,14 @@ function HostDashboardContent() {
   const [pinError, setPinError] = useState(false);
 
   // Real-time Firebase RTDB connection status
-  const [firebaseConnected, setFirebaseConnected] = useState(false);
+  const [firebaseStatus, setFirebaseStatus] = useState<FirebaseConnectionStatus>({
+    connected: false,
+    permissionGranted: false,
+    permissionDenied: false,
+  });
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // Student Roster search & desk filter
+  // Student roster search & desk filter
   const [deskFilter, setDeskFilter] = useState<"ALL" | StudentDesk>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
@@ -72,8 +82,20 @@ function HostDashboardContent() {
   }, []);
 
   useEffect(() => {
-    return subscribeToFirebaseConnection(setFirebaseConnected);
+    return subscribeToFirebaseConnection(setFirebaseStatus);
   }, []);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      const latest = await getRoomState(roomCode);
+      if (latest) {
+        setRoom(latest);
+      }
+    } finally {
+      setTimeout(() => setIsSyncing(false), 500);
+    }
+  };
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
@@ -308,22 +330,26 @@ function HostDashboardContent() {
                 {/* Real-Time Live Sync Status Badge */}
                 <div
                   className={`text-[10px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1.5 ${
-                    firebaseConnected
+                    firebaseStatus.permissionGranted
                       ? "bg-gain-subtle text-gain border border-gain-border"
                       : "bg-amber-500/10 text-amber-300 border border-amber-500/30"
                   }`}
                   title={
-                    firebaseConnected
+                    firebaseStatus.permissionGranted
                       ? "Google Cloud Firebase Realtime Database active and streaming live updates via WebSocket"
-                      : "Dual-Sync HTTP multi-device polling engine active (fallback sync every 1.2s)"
+                      : "Firebase RTDB security rules locked (permission denied) - set .read: true, .write: true in Firebase Console"
                   }
                 >
                   <span
-                    className={`w-1.5 h-1.5 rounded-full animate-pulse ${
-                      firebaseConnected ? "bg-gain" : "bg-amber-400"
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      firebaseStatus.permissionGranted ? "bg-gain animate-pulse" : "bg-amber-400"
                     }`}
                   />
-                  <span>{firebaseConnected ? "Firebase RTDB Live" : "Dual-Sync Engine"}</span>
+                  <span>
+                    {firebaseStatus.permissionGranted
+                      ? "Firebase RTDB Multi-Device Live"
+                      : "Rules Locked (Single-Device Fallback)"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -335,6 +361,16 @@ function HostDashboardContent() {
               <span className="font-bold text-white">{allPlayers.length}</span>
               <span>Traders</span>
             </div>
+
+            <button
+              type="button"
+              onClick={handleManualSync}
+              className="min-h-touch px-3 py-1.5 rounded-ui bg-surface-subtle hover:bg-surface border border-borderSubtle text-xs font-bold text-white motion-btn-press flex items-center gap-1.5"
+              title="Force sync latest room state from server"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-accent ${isSyncing ? "animate-spin" : ""}`} />
+              <span>{isSyncing ? "Syncing..." : "Sync Floor"}</span>
+            </button>
 
             <Link
               href={`/projector/${roomCode}`}
@@ -369,6 +405,55 @@ function HostDashboardContent() {
       <main className="max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 flex-1">
         {room && (
           <>
+            {/* Multi-Device Cloud Sync Warning if Firebase Rules are locked */}
+            {firebaseStatus.permissionDenied && (
+              <div className="card-surface p-4 border border-amber-500/40 bg-amber-500/10 rounded-ui space-y-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1 w-full">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h3 className="text-sm font-bold text-white tracking-tight">
+                        Multi-Device Cloud Synchronization Is Blocked (Firebase Rules Locked)
+                      </h3>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        ACTION REQUIRED IN FIREBASE CONSOLE
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-200/90 leading-relaxed">
+                      Other devices (smartphones, tablets, student laptops) cannot synchronize live with your system because your Google Cloud Firebase Realtime Database rules currently reject read and write access.
+                    </p>
+                    <div className="text-xs font-mono bg-black/60 p-3 rounded-ui border border-amber-500/20 text-slate-300 space-y-2.5 mt-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-accent text-white flex items-center justify-center font-bold text-[10px] shrink-0">1</span>
+                        <span>
+                          Open your Firebase Console:{" "}
+                          <a
+                            href="https://console.firebase.google.com/project/jse-trading-sim/database/jse-trading-sim-default-rtdb/rules"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-accent underline font-bold"
+                          >
+                            Firebase Console &gt; Realtime Database &gt; Rules Tab
+                          </a>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-accent text-white flex items-center justify-center font-bold text-[10px] shrink-0">2</span>
+                        <span>Replace existing rules with:</span>
+                      </div>
+                      <div className="p-2.5 rounded bg-black text-gain font-mono text-xs border border-white/10 select-all">
+                        {`{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}`}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-accent text-white flex items-center justify-center font-bold text-[10px] shrink-0">3</span>
+                        <span>Click <strong>Publish</strong>. All connected devices will instantly synchronize live in real time!</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Round Controls */}
             <RoundControl
               room={room}

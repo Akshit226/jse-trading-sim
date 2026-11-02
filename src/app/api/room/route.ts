@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  fetchRemoteRoom,
   getServerRoom,
   serverAdvanceRound,
   serverJoinPlayer,
@@ -13,6 +14,14 @@ import { createInitialRoom } from "@/lib/sync/syncService";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code = (searchParams.get("code") || "WALLST").toUpperCase();
+
+  // Check remote Firebase RTDB first for cross-container synchrony
+  const remote = await fetchRemoteRoom(code);
+  if (remote) {
+    setServerRoom(remote);
+    return NextResponse.json({ success: true, room: remote });
+  }
+
   const room = getServerRoom(code);
   return NextResponse.json({ success: true, room });
 }
