@@ -197,7 +197,7 @@ function HostDashboardContent() {
   const handleExportCSV = () => {
     if (!room) return;
     const playersList = Object.values(room.players || {}).sort(
-      (a, b) => b.totalNetWorth - a.totalNetWorth
+      (a, b) => (b.totalNetWorth ?? 0) - (a.totalNetWorth ?? 0)
     );
 
     const headers = [
@@ -219,12 +219,12 @@ function HostDashboardContent() {
 
       return [
         idx + 1,
-        `"${p.name.replace(/"/g, '""')}"`,
-        `"${(p.email || p.id).replace(/"/g, '""')}"`,
-        p.totalNetWorth.toFixed(2),
-        p.returnPercent.toFixed(2),
-        p.cash.toFixed(2),
-        p.totalTrades,
+        `"${(p.name || "Student").replace(/"/g, '""')}"`,
+        `"${(p.email || p.id || "").replace(/"/g, '""')}"`,
+        (p.totalNetWorth ?? 1000000).toFixed(2),
+        (p.returnPercent ?? 0).toFixed(2),
+        (p.cash ?? 1000000).toFixed(2),
+        p.totalTrades ?? 0,
         `"${holdingsStr}"`,
       ];
     });
@@ -243,18 +243,19 @@ function HostDashboardContent() {
   // Filtered student list
   const allPlayers = useMemo(() => {
     if (!room?.players) return [];
-    return Object.values(room.players).sort((a, b) => b.totalNetWorth - a.totalNetWorth);
+    return Object.values(room.players).sort(
+      (a, b) => (b.totalNetWorth ?? 0) - (a.totalNetWorth ?? 0)
+    );
   }, [room?.players]);
 
   const filteredStudents = useMemo(() => {
     return allPlayers.filter((p) => {
       const matchesDesk = deskFilter === "ALL" || p.desk === deskFilter;
       const q = searchQuery.trim().toLowerCase();
-      const matchesSearch =
-        !q ||
-        p.name.toLowerCase().includes(q) ||
-        (p.email && p.email.toLowerCase().includes(q)) ||
-        p.id.toLowerCase().includes(q);
+      const name = (p.name || "").toLowerCase();
+      const email = (p.email || "").toLowerCase();
+      const id = (p.id || "").toLowerCase();
+      const matchesSearch = !q || name.includes(q) || email.includes(q) || id.includes(q);
       return matchesDesk && matchesSearch;
     });
   }, [allPlayers, deskFilter, searchQuery]);
@@ -623,8 +624,12 @@ function HostDashboardContent() {
                     ) : (
                       filteredStudents.map((student, idx) => {
                         const isExpanded = expandedStudentId === student.id;
-                        const desk = DESK_METADATA[student.desk];
-                        const isPositive = student.returnPercent >= 0;
+                        const desk = student.desk ? DESK_METADATA[student.desk] : undefined;
+                        const returnPct = typeof student.returnPercent === "number" ? student.returnPercent : 0;
+                        const isPositive = returnPct >= 0;
+                        const studentNetWorth = typeof student.totalNetWorth === "number" ? student.totalNetWorth : 1000000;
+                        const studentCash = typeof student.cash === "number" ? student.cash : 1000000;
+                        const studentName = student.name || "Student Trader";
                         const nonZeroShares = Object.entries(student.shares || {}).filter(
                           ([, qty]) => qty > 0
                         );
@@ -641,15 +646,15 @@ function HostDashboardContent() {
                                     {student.photoURL ? (
                                       <img
                                         src={student.photoURL}
-                                        alt={student.name}
+                                        alt={studentName}
                                         className="w-4 h-4 rounded-full shrink-0"
                                       />
                                     ) : (
                                       <div className="w-4 h-4 rounded-full bg-accent/20 text-accent font-bold text-[9px] flex items-center justify-center shrink-0">
-                                        {student.name[0]}
+                                        {studentName[0] || "S"}
                                       </div>
                                     )}
-                                    <span className="font-sans text-xs font-bold text-white">{student.name}</span>
+                                    <span className="font-sans text-xs font-bold text-white">{studentName}</span>
                                     <span className="w-1.5 h-1.5 rounded-full bg-gain animate-pulse" title="Live Verified Student" />
                                   </div>
                                   <span className="text-[10px] text-neutralMuted font-normal block truncate max-w-[190px]">
@@ -660,12 +665,12 @@ function HostDashboardContent() {
 
                               <td className="py-2.5">
                                 <span className="px-2 py-0.5 rounded bg-surface border border-borderSubtle text-[10px] text-neutralMuted">
-                                  {desk?.name || student.desk}
+                                  {desk?.name || student.desk || "Student"}
                                 </span>
                               </td>
 
                               <td className="py-2.5 text-right font-bold text-white tabular-nums">
-                                {formatINR(student.totalNetWorth)}
+                                {formatINR(studentNetWorth)}
                               </td>
 
                               <td
@@ -674,16 +679,16 @@ function HostDashboardContent() {
                                 }`}
                               >
                                 {isPositive ? "+" : ""}
-                                {student.returnPercent.toFixed(2)}%
+                                {returnPct.toFixed(2)}%
                               </td>
 
                               <td className="py-2.5 text-right text-neutralMuted tabular-nums">
-                                {formatINR(student.cash)}
+                                {formatINR(studentCash)}
                               </td>
 
                               <td className="py-2.5 text-center tabular-nums">
                                 <span className="px-1.5 py-0.5 rounded bg-surface-subtle text-[11px] font-bold text-white border border-borderSubtle">
-                                  {student.totalTrades}
+                                  {student.totalTrades ?? 0}
                                 </span>
                               </td>
 
@@ -719,7 +724,7 @@ function HostDashboardContent() {
                                       </span>
                                     ) : (
                                       nonZeroShares.map(([aid, qty]) => {
-                                        const asset = room.assets?.[aid as AssetId];
+                                        const asset = room?.assets?.[aid as AssetId];
                                         const assetPrice = asset?.currentPrice || 0;
                                         const totalVal = qty * assetPrice;
                                         return (

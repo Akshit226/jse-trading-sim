@@ -17,7 +17,7 @@ export const LiveLeaderboard: React.FC<LiveLeaderboardProps> = ({
   maxDisplay = 10,
 }) => {
   const sortedPlayers = Object.values(players || {})
-    .sort((a, b) => b.totalNetWorth - a.totalNetWorth)
+    .sort((a, b) => (b.totalNetWorth ?? 0) - (a.totalNetWorth ?? 0))
     .slice(0, maxDisplay);
 
   return (
@@ -42,8 +42,11 @@ export const LiveLeaderboard: React.FC<LiveLeaderboardProps> = ({
           sortedPlayers.map((player, idx) => {
             const rank = idx + 1;
             const isCurrent = player.id === currentPlayerId;
-            const isGain = player.returnPercent >= 0;
-            const desk = DESK_METADATA[player.desk];
+            const returnPct = typeof player.returnPercent === "number" ? player.returnPercent : 0;
+            const isGain = returnPct >= 0;
+            const netWorth = typeof player.totalNetWorth === "number" ? player.totalNetWorth : 1000000;
+            const desk = player.desk ? DESK_METADATA[player.desk] : undefined;
+            const displayName = player.name || "Student Trader";
 
             return (
               <div
@@ -72,7 +75,7 @@ export const LiveLeaderboard: React.FC<LiveLeaderboardProps> = ({
 
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-white truncate flex items-center gap-1.5">
-                      <span className="truncate">{player.name}</span>
+                      <span className="truncate">{displayName}</span>
                       {isCurrent && (
                         <span className="text-[9px] font-mono font-bold text-accent px-1 rounded bg-accent-subtle border border-accent">
                           YOU
@@ -80,7 +83,7 @@ export const LiveLeaderboard: React.FC<LiveLeaderboardProps> = ({
                       )}
                     </div>
                     <div className="text-[10px] text-neutralMuted truncate">
-                      {desk?.name || player.desk}
+                      {desk?.name || player.desk || "Student"}
                     </div>
                   </div>
                 </div>
@@ -88,7 +91,7 @@ export const LiveLeaderboard: React.FC<LiveLeaderboardProps> = ({
                 {/* Right: Net Worth + P&L% + Arrow */}
                 <div className="text-right shrink-0 pl-2">
                   <div className="text-xs font-bold font-mono text-white tabular-nums">
-                    {formatINR(player.totalNetWorth)}
+                    {formatINR(netWorth)}
                   </div>
                   <div
                     className={`text-[11px] font-mono font-bold flex items-center justify-end gap-0.5 tabular-nums ${
@@ -102,7 +105,7 @@ export const LiveLeaderboard: React.FC<LiveLeaderboardProps> = ({
                     )}
                     <span>
                       {isGain ? "+" : ""}
-                      {player.returnPercent.toFixed(1)}%
+                      {returnPct.toFixed(1)}%
                     </span>
                   </div>
                 </div>
