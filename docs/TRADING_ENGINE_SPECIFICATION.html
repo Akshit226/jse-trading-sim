@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSE Trading Simulator: Financial Engine & Market Calculations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --card-subtle: #1a2234;
+      --border: #26334d;
+      --border-accent: #38bdf8;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --gain: #10b981;
+      --gain-bg: rgba(16, 185, 129, 0.12);
+      --loss: #ef4444;
+      --loss-bg: rgba(239, 68, 68, 0.12);
+      --code-bg: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #ffffff;
+      margin-bottom: 0.75rem;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 800px;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 2.5rem 0 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+
+    h2 .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 8px;
+      background: var(--card-subtle);
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: #cbd5e1;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .step-box {
+      background: var(--card-subtle);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .step-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .formula {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--accent);
+      margin: 0.75rem 0;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.25rem 0;
+      font-size: 0.875rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th {
+      background: var(--card-subtle);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(38, 51, 77, 0.6);
+      color: #e2e8f0;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .text-gain {
+      color: var(--gain);
+      font-weight: 700;
+    }
+
+    .text-loss {
+      color: var(--loss);
+      font-weight: 700;
+    }
+
+    .pill-gain {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      background: var(--gain-bg);
+      color: var(--gain);
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .pill-loss {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      background: var(--loss-bg);
+      color: var(--loss);
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .example-box {
+      border-left: 4px solid var(--accent);
+      background: var(--card-subtle);
+      padding: 1.25rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1.25rem 0;
+    }
+
+    .print-btn {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--accent);
+      color: #0b0f19;
+      font-weight: 700;
+      font-size: 0.875rem;
+      padding: 0.75rem 1.25rem;
+      border-radius: 9999px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: transform 0.15s ease;
+    }
+
+    .print-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+        color: #000000;
+        padding: 0;
+      }
+      .card, .step-box, .formula, table {
+        background: #ffffff !important;
+        border-color: #cbd5e1 !important;
+        color: #000000 !important;
+      }
+      th {
+        background: #f1f5f9 !important;
+        color: #334155 !important;
+      }
+      td, p, .subtitle {
+        color: #0f172a !important;
+      }
+      h1, h2 {
+        color: #000000 !important;
+      }
+      .print-btn {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">Institutional Trading Specification</div>
+      <h1>JSE Classroom Trading Simulator</h1>
+      <p class="subtitle">Complete reference documentation on how trades execute, the dynamic pricing engine, mathematical formulas, and the institutional market comparison.</p>
+    </header>
+
+    <!-- SECTION 1: THE BIG PICTURE -->
+    <section>
+      <h2><span class="num">1</span> The 4-Stage Trade Lifecycle</h2>
+      <p>When a student enters a quantity and clicks <strong>BUY</strong> or <strong>SELL</strong> on their trading pad, the engine processes the order through four instantaneous phases:</p>
+
+      <div class="grid-4">
+        <div class="step-box">
+          <div class="step-header">
+            <span class="mono" style="color: var(--accent);">01</span>
+            <span class="step-title">Validation</span>
+          </div>
+          <p style="font-size: 0.825rem; color: var(--text-muted);">Verifies available cash margin or share balance to eliminate uncollateralized risk.</p>
+        </div>
+
+        <div class="step-box">
+          <div class="step-header">
+            <span class="mono" style="color: var(--accent);">02</span>
+            <span class="step-title">Execution</span>
+          </div>
+          <p style="font-size: 0.825rem; color: var(--text-muted);">Atomic swap: liquid cash deducted/credited and share inventory adjusted.</p>
+        </div>
+
+        <div class="step-box">
+          <div class="step-header">
+            <span class="mono" style="color: var(--accent);">03</span>
+            <span class="step-title">Price Impact</span>
+          </div>
+          <p style="font-size: 0.825rem; color: var(--text-muted);">Calculates buying/selling pressure based on capital volume vs stock depth.</p>
+        </div>
+
+        <div class="step-box">
+          <div class="step-header">
+            <span class="mono" style="color: var(--accent);">04</span>
+            <span class="step-title">Mark-to-Market</span>
+          </div>
+          <p style="font-size: 0.825rem; color: var(--text-muted);">Recalculates room-wide portfolio Net Worth, Return %, and Projector ranks.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: MATHEMATICAL FORMULAS -->
+    <section>
+      <h2><span class="num">2</span> Mathematical Calculations & Formulas</h2>
+
+      <div class="card">
+        <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 0.5rem;">A. Order Validation & Capital Requirement</h3>
+        <p>The total capital required to execute a trade is computed as:</p>
+        <div class="formula">Total Cost = Quantity × Current Market Price (CMP)</div>
+        <p><strong>The Gatekeeper Constraints:</strong></p>
+        <ul style="margin-left: 1.5rem; color: #cbd5e1; font-size: 0.9rem; line-height: 1.8;">
+          <li><strong>For BUY Orders:</strong> <span class="mono text-gain">Liquid Cash ≥ Total Cost</span>. If cash is insufficient, rejected with error: <em>"Insufficient cash. Need ₹X, but have ₹Y"</em>.</li>
+          <li><strong>For SELL Orders:</strong> <span class="mono text-loss">Shares Owned ≥ Quantity</span>. Prevents illegal short selling. Rejected with error: <em>"Insufficient shares. Attempted to sell X, but hold Y"</em>.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 0.5rem;">B. Dynamic Market Impact & Price Shift</h3>
+        <p>In real financial markets, trading volume moves the price based on available liquidity. The simulator implements a linear capital depth model:</p>
+        
+        <div class="formula">Price Shift % = Order Value in ₹ / Stock Liquidity Depth (D)</div>
+
+        <div class="grid-2" style="margin-top: 1rem;">
+          <div class="step-box">
+            <div class="step-title" style="color: var(--gain);">BUY Order Dynamic</div>
+            <p style="font-size: 0.85rem; margin-top: 0.5rem;">Generates upward buying pressure, shifting the price <strong>UP</strong>:</p>
+            <div class="formula" style="color: var(--gain);">New Price = CMP × (1 + Price Shift %)</div>
+          </div>
+
+          <div class="step-box">
+            <div class="step-title" style="color: var(--loss);">SELL Order Dynamic</div>
+            <p style="font-size: 0.85rem; margin-top: 0.5rem;">Injects supply into the market, pulling the price <strong>DOWN</strong>:</p>
+            <div class="formula" style="color: var(--loss);">New Price = CMP × (1 - Price Shift %)</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.25rem; padding: 1rem; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px;">
+          <strong style="color: var(--accent);">Protective Circuit Breakers:</strong>
+          <ul style="margin-left: 1.5rem; margin-top: 0.5rem; font-size: 0.85rem; color: #cbd5e1;">
+            <li><strong>Single-Trade 8% Shift Cap:</strong> No individual order can move a stock by more than <strong>±8.0%</strong> in a single click, preventing market manipulation.</li>
+            <li><strong>Absolute ₹10.00 Price Floor:</strong> A stock can never crash below ₹10.00.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 0.5rem;">C. Portfolio Net Worth & Leaderboard Ranks</h3>
+        <p>Every student's wealth is evaluated <strong>Mark-to-Market</strong> every second:</p>
+        <div class="formula">Equity Value = Σ (Shares Held × Current Stock Price)</div>
+        <div class="formula">Total Net Worth = Liquid Cash + Equity Value</div>
+        <div class="formula">Return % = [ (Total Net Worth - ₹10,00,000) / ₹10,00,000 ] × 100%</div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: LIQUIDITY DEPTH MATRIX -->
+    <section>
+      <h2><span class="num">3</span> Stock Liquidity & Volatility Matrix</h2>
+      <p>Different equities have different liquidity profiles. Heavyweight FMCG stocks move slowly; tech and consumer discretionary stocks are volatile:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Company Name</th>
+            <th>Sector</th>
+            <th>Liquidity Depth (D)</th>
+            <th>Volatility Profile</th>
+            <th>Shift on ₹1,00,000 Order</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono font-bold" style="color: #fff;">PGHH</td>
+            <td>Procter & Gamble Hygiene</td>
+            <td>FMCG</td>
+            <td class="mono">₹60,00,000</td>
+            <td><span class="pill-gain">Defensive Heavy</span></td>
+            <td class="mono">±1.67%</td>
+          </tr>
+          <tr>
+            <td class="mono font-bold" style="color: #fff;">COLPAL</td>
+            <td>Colgate-Palmolive India</td>
+            <td>FMCG</td>
+            <td class="mono">₹50,00,000</td>
+            <td><span class="pill-gain">Defensive</span></td>
+            <td class="mono">±2.00%</td>
+          </tr>
+          <tr>
+            <td class="mono font-bold" style="color: #fff;">OFSS</td>
+            <td>Oracle Financial Services</td>
+            <td>IT</td>
+            <td class="mono">₹45,00,000</td>
+            <td><span style="color: #94a3b8;">Moderate Heavy</span></td>
+            <td class="mono">±2.22%</td>
+          </tr>
+          <tr>
+            <td class="mono font-bold" style="color: #fff;">GILLETTE</td>
+            <td>Gillette India Limited</td>
+            <td>FMCG</td>
+            <td class="mono">₹40,00,000</td>
+            <td><span style="color: #94a3b8;">Moderate</span></td>
+            <td class="mono">±2.50%</td>
+          </tr>
+          <tr>
+            <td class="mono font-bold" style="color: #fff;">COFORGE</td>
+            <td>Coforge Limited</td>
+            <td>IT</td>
+            <td class="mono">₹35,00,000</td>
+            <td><span style="color: var(--accent);">Growth Tech</span></td>
+            <td class="mono">±2.86%</td>
+          </tr>
+          <tr>
+            <td class="mono font-bold" style="color: #fff;">TATAELXSI</td>
+            <td>Tata Elxsi Limited</td>
+            <td>IT</td>
+            <td class="mono">₹32,00,000</td>
+            <td><span style="color: var(--accent);">Growth Tech</span></td>
+            <td class="mono">±3.12%</td>
+          </tr>
+          <tr>
+            <td class="mono font-bold" style="color: #fff;">LTTS</td>
+            <td>L&T Technology Services</td>
+            <td>IT</td>
+            <td class="mono">₹30,00,000</td>
+            <td><span style="color: var(--accent);">Engineering Tech</span></td>
+            <td class="mono">±3.33%</td>
+          </tr>
+          <tr>
+            <td class="mono font-bold" style="color: #fff;">MPHASIS</td>
+            <td>Mphasis Limited</td>
+            <td>IT</td>
+            <td class="mono">₹25,00,000</td>
+            <td><span class="pill-loss">High Sensitivity</span></td>
+            <td class="mono">±4.00%</td>
+          </tr>
+          <tr>
+            <td class="mono font-bold" style="color: #fff;">UBL</td>
+            <td>United Breweries Limited</td>
+            <td>FMCG</td>
+            <td class="mono">₹24,00,000</td>
+            <td><span class="pill-loss">High Beta</span></td>
+            <td class="mono">±4.17%</td>
+          </tr>
+          <tr>
+            <td class="mono font-bold" style="color: #fff;">RADICO</td>
+            <td>Radico Khaitan Limited</td>
+            <td>FMCG</td>
+            <td class="mono">₹22,00,000</td>
+            <td><span class="pill-loss">Most Volatile</span></td>
+            <td class="mono">±4.55%</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 4: CONCRETE TRADING EXAMPLE -->
+    <section>
+      <h2><span class="num">4</span> Walkthrough of a Real Student Order</h2>
+
+      <div class="example-box">
+        <h4 style="color: #fff; font-size: 1rem; margin-bottom: 0.5rem;">Scenario: Student buys 10 shares of Coforge at ₹7,600</h4>
+        <p style="font-size: 0.9rem; margin-bottom: 0.75rem;">
+          • Starting Student Cash: <strong>₹6,00,000</strong> &nbsp;|&nbsp; Owns 0 shares of Coforge.<br>
+          • Stock: <strong>COFORGE</strong> (Depth = ₹35,00,000). Current Price: <strong>₹7,600.00</strong>.
+        </p>
+
+        <table style="margin-top: 1rem;">
+          <thead>
+            <tr>
+              <th>Calculation Step</th>
+              <th>Formula Applied</th>
+              <th>Resulting Figure</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1. Order Cost</strong></td>
+              <td class="mono">10 shares × ₹7,600.00</td>
+              <td class="mono font-bold" style="color: #fff;">₹76,000.00</td>
+            </tr>
+            <tr>
+              <td><strong>2. Cash Deduction</strong></td>
+              <td class="mono">₹6,00,000 - ₹76,000</td>
+              <td class="mono font-bold text-gain">₹5,24,000.00</td>
+            </tr>
+            <tr>
+              <td><strong>3. Shares Added</strong></td>
+              <td class="mono">0 + 10 shares</td>
+              <td class="mono font-bold" style="color: #fff;">10 shares</td>
+            </tr>
+            <tr>
+              <td><strong>4. Market Impact</strong></td>
+              <td class="mono">₹76,000 / ₹35,00,000</td>
+              <td class="mono font-bold text-gain">+2.17% Price Shift</td>
+            </tr>
+            <tr>
+              <td><strong>5. New Stock Price</strong></td>
+              <td class="mono">₹7,600 × (1 + 0.0217)</td>
+              <td class="mono font-bold text-gain">₹7,765.00</td>
+            </tr>
+            <tr>
+              <td><strong>6. Position Valuation</strong></td>
+              <td class="mono">10 shares × ₹7,765.00</td>
+              <td class="mono font-bold text-gain">₹77,650.00 (Instant gain)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 5: REAL WORLD COMPARISON -->
+    <section>
+      <h2><span class="num">5</span> Real Market (NSE) vs. Classroom Simulator</h2>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Trading Concept</th>
+              <th>Real Stock Market (NSE / BSE / NASDAQ)</th>
+              <th>Your Classroom Simulator</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Supply & Demand</strong></td>
+              <td>Institutional buying moves prices up; bulk selling causes panic drops.</td>
+              <td><strong>Identical</strong>: Buying volume pushes stock prices up; selling pulls them down.</td>
+            </tr>
+            <tr>
+              <td><strong>Market Liquidity</strong></td>
+              <td>Heavy caps (Reliance, Apple) absorb huge orders; small caps swing wildly.</td>
+              <td><strong>Identical</strong>: Modeled via calibrated Liquidity Depth (PGHH ₹60L vs Radico ₹22L).</td>
+            </tr>
+            <tr>
+              <td><strong>Circuit Breakers</strong></td>
+              <td>Exchange halts trading if stocks move past 5%, 10%, or 20% bands.</td>
+              <td><strong>Identical</strong>: Single orders capped at ±8% maximum shift to prevent cornering.</td>
+            </tr>
+            <tr>
+              <td><strong>Order Matching</strong></td>
+              <td>Requires another human or algorithm to place the opposite matching limit order.</td>
+              <td><strong>Automated Market Maker (AMM)</strong>: Instant execution so 30-40 students never wait.</td>
+            </tr>
+            <tr>
+              <td><strong>Valuation Model</strong></td>
+              <td>Mark-to-Market portfolio accounting based on last traded price.</td>
+              <td><strong>Identical</strong>: Every second, net worth and return % update in real time.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.85rem;">
+      <p>JSE Classroom Trading Simulator • Verified 40-Student Concurrency Capacity • Low-Latency WebSocket Engine</p>
+    </footer>
+  </div>
+
+  <button class="print-btn" onclick="window.print()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+    Print / Save as PDF
+  </button>
+</body>
+</html>

@@ -22,6 +22,20 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   const strokeColor = isPositive ? "#22C55E" : "#EF4444";
   const gradientId = `chart-fill-${asset.id}`;
 
+  const [prevPrice, setPrevPrice] = React.useState(asset.currentPrice);
+  const [priceAnim, setPriceAnim] = React.useState<"gain" | "loss" | null>(null);
+
+  React.useEffect(() => {
+    if (asset.currentPrice > 0 && prevPrice > 0 && asset.currentPrice !== prevPrice) {
+      setPriceAnim(asset.currentPrice > prevPrice ? "gain" : "loss");
+      setPrevPrice(asset.currentPrice);
+      const timer = setTimeout(() => setPriceAnim(null), 400);
+      return () => clearTimeout(timer);
+    } else if (asset.currentPrice !== prevPrice) {
+      setPrevPrice(asset.currentPrice);
+    }
+  }, [asset.currentPrice, prevPrice]);
+
   const { points, areaPoints, minPrice, maxPrice } = useMemo(() => {
     const history = asset.historicalPrices;
     if (!history || history.length === 0) {
@@ -81,7 +95,15 @@ export const PriceChart: React.FC<PriceChartProps> = ({
           </div>
 
           <div className="text-right">
-            <div className="text-2xl font-bold text-white font-mono tabular-nums">
+            <div
+              className={`text-2xl font-bold font-mono tabular-nums inline-block transition-transform ${
+                priceAnim === "gain"
+                  ? "motion-tick-gain"
+                  : priceAnim === "loss"
+                  ? "motion-tick-loss"
+                  : "text-white"
+              }`}
+            >
               {formatINR(asset.currentPrice)}
             </div>
             <div

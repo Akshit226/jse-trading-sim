@@ -40,9 +40,23 @@ export const TradePad: React.FC<TradePadProps> = ({
   const [quantity, setQuantity] = useState<number>(10);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isExecutedPulse, setIsExecutedPulse] = useState(false);
 
   const holding = (asset && player.shares[selectedAssetId]) || 0;
   const currentPrice = asset?.currentPrice || 0;
+  const [prevPrice, setPrevPrice] = useState(currentPrice);
+  const [priceAnim, setPriceAnim] = useState<"gain" | "loss" | null>(null);
+
+  React.useEffect(() => {
+    if (currentPrice > 0 && prevPrice > 0 && currentPrice !== prevPrice) {
+      setPriceAnim(currentPrice > prevPrice ? "gain" : "loss");
+      setPrevPrice(currentPrice);
+      const timer = setTimeout(() => setPriceAnim(null), 400);
+      return () => clearTimeout(timer);
+    } else if (currentPrice !== prevPrice) {
+      setPrevPrice(currentPrice);
+    }
+  }, [currentPrice, prevPrice]);
   const estimatedTotal = Number((quantity * currentPrice).toFixed(2));
   const maxBuyAffordable = currentPrice > 0 ? Math.floor(player.cash / currentPrice) : 0;
   const isMarketActive = room.status === "ACTIVE";
@@ -83,7 +97,10 @@ export const TradePad: React.FC<TradePadProps> = ({
     const res = await onTrade(order);
     setLoading(false);
 
-    if (!res.success) {
+    if (res.success) {
+      setIsExecutedPulse(true);
+      setTimeout(() => setIsExecutedPulse(false), 500);
+    } else {
       setErrorMessage(res.error || "Trade execution failed");
     }
   };
@@ -109,7 +126,15 @@ export const TradePad: React.FC<TradePadProps> = ({
           </div>
         </div>
         <div className="text-right shrink-0">
-          <span className="text-sm font-bold font-mono text-white tabular-nums">
+          <span
+            className={`text-sm font-bold font-mono text-white tabular-nums inline-block transition-transform ${
+              priceAnim === "gain"
+                ? "motion-tick-gain"
+                : priceAnim === "loss"
+                ? "motion-tick-loss"
+                : ""
+            }`}
+          >
             {formatINR(currentPrice)}
           </span>
           <span
@@ -189,7 +214,7 @@ export const TradePad: React.FC<TradePadProps> = ({
                 key={q}
                 type="button"
                 onClick={() => setQuantity(q)}
-                className={`flex-1 py-1.5 rounded-md border text-xs font-bold transition-colors ${
+                className={`flex-1 py-1.5 rounded-md border text-xs font-bold motion-btn-press ${
                   quantity === q
                     ? "bg-surface border-borderStrong text-white"
                     : "bg-surface-subtle border-borderSubtle text-neutralMuted hover:text-white"
@@ -209,7 +234,7 @@ export const TradePad: React.FC<TradePadProps> = ({
                 }
               }}
               disabled={side === "BUY" ? maxBuyAffordable <= 0 : holding <= 0}
-              className="flex-1 py-1.5 rounded-md border border-borderSubtle bg-surface-subtle hover:bg-surface text-neutralMuted hover:text-white text-xs font-bold disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              className="flex-1 py-1.5 rounded-md border border-borderSubtle bg-surface-subtle hover:bg-surface text-neutralMuted hover:text-white text-xs font-bold motion-btn-press disabled:opacity-30 disabled:pointer-events-none transition-colors"
             >
               Max
             </button>
@@ -269,7 +294,9 @@ export const TradePad: React.FC<TradePadProps> = ({
         type="button"
         onClick={handleExecute}
         disabled={loading || Boolean(validationError)}
-        className={`w-full min-h-touch py-3 rounded-ui text-white font-bold text-sm shadow-ui motion-btn-press disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center justify-center gap-2 ${
+        className={`w-full min-h-touch py-3 rounded-ui text-white font-bold text-sm shadow-ui motion-btn-press disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center justify-center gap-2 ${
+          isExecutedPulse ? "motion-exec-pulse ring-2 ring-gain" : ""
+        } ${
           side === "BUY"
             ? "bg-gain hover:bg-emerald-600"
             : "bg-loss hover:bg-rose-600"

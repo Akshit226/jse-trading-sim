@@ -51,7 +51,7 @@ export const BreakingNewsBanner: React.FC<BreakingNewsBannerProps> = ({ news, on
   return (
     <>
       {/* Non-Blocking Floating Catalyst Toast / Pill */}
-      <div className="card-surface p-3 border-l-4 transition-colors motion-view-enter relative flex items-center justify-between gap-3 text-xs">
+      <div className="card-surface p-3 border-l-4 transition-colors motion-catalyst-shock relative flex items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2.5 min-w-0">
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
