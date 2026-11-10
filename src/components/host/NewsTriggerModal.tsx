@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { AssetId, NewsEvent, NewsSentiment } from "@/types/trading";
 import { PRESET_NEWS_SCENARIOS } from "@/lib/engine/newsScenarios";
-import { Radio, Send, ArrowUpRight, ArrowDownRight, CheckSquare, Square, HelpCircle } from "lucide-react";
+import { Radio, Send, ArrowUpRight, ArrowDownRight, CheckSquare, Square, HelpCircle, BookOpen } from "lucide-react";
 
 interface NewsTriggerModalProps {
   currentRound: number;
@@ -125,6 +125,12 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
                   <div className="text-xs font-bold text-white leading-snug">
                     {preset.title}
                   </div>
+                  {preset.financialMetrics && (
+                    <div className="mt-1 flex items-center gap-1 text-[10px] font-mono text-accent font-bold">
+                      <BookOpen className="w-3 h-3 text-accent" />
+                      <span>Concept: {preset.financialMetrics.keyAccountingConcept}</span>
+                    </div>
+                  )}
                   <p className="text-[11px] text-neutralMuted mt-1 line-clamp-2 leading-relaxed">
                     {preset.description}
                   </p>

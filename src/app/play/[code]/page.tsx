@@ -53,6 +53,9 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  BookOpen,
+  BarChart3,
+  Newspaper,
 } from "lucide-react";
 
 function PlayRoomContent() {
@@ -400,16 +403,76 @@ function PlayRoomContent() {
               Waiting for instructor news catalysts...
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {(room.newsHistory || []).map((n) => (
-                <div key={n.id} className="p-3 bg-surface-subtle rounded-ui border border-borderSubtle space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-white">{n.title}</span>
-                    <span className="text-[10px] text-neutralMuted font-mono">
+                <div key={n.id} className="p-3.5 bg-surface-subtle rounded-ui border border-borderSubtle space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-accent font-bold uppercase">
+                        <Newspaper className="w-3 h-3" />
+                        <span>Financial Dispatch • Round {n.round}</span>
+                      </div>
+                      <span className="font-bold text-white text-xs sm:text-sm leading-snug block">
+                        {n.title}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-neutralMuted font-mono shrink-0">
                       {new Date(n.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
-                  <p className="text-xs text-neutralMuted leading-relaxed">{n.description}</p>
+
+                  {/* Newspaper Body / Description */}
+                  <div className="text-xs text-slate-200 leading-relaxed font-sans space-y-1.5">
+                    {n.newspaperBody && n.newspaperBody.length > 0 ? (
+                      n.newspaperBody.map((para, idx) => (
+                        <p key={idx}>{para}</p>
+                      ))
+                    ) : (
+                      <p>{n.description}</p>
+                    )}
+                  </div>
+
+                  {/* Financial Metrics & Accounting Concept Card */}
+                  {n.financialMetrics && (
+                    <div className="p-2.5 bg-surface rounded-ui border border-accent/25 space-y-2 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 font-mono text-[11px]">
+                        {n.financialMetrics.revenue && (
+                          <div className="text-neutralMuted">
+                            <span className="text-white font-bold">Topline: </span>
+                            {n.financialMetrics.revenue}
+                          </div>
+                        )}
+                        {n.financialMetrics.operatingProfit && (
+                          <div className="text-neutralMuted">
+                            <span className="text-white font-bold">Operating EBITDA: </span>
+                            {n.financialMetrics.operatingProfit}
+                          </div>
+                        )}
+                        {n.financialMetrics.netProfit && (
+                          <div className="text-neutralMuted">
+                            <span className="text-white font-bold">Net Profit (PAT): </span>
+                            {n.financialMetrics.netProfit}
+                          </div>
+                        )}
+                        {n.financialMetrics.cashFlowOrDebt && (
+                          <div className="text-neutralMuted">
+                            <span className="text-white font-bold">Cash Flow / Debt: </span>
+                            {n.financialMetrics.cashFlowOrDebt}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-1.5 border-t border-borderSubtle flex items-start gap-1.5 text-[11px] text-slate-300">
+                        <BookOpen className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-accent font-bold font-mono">
+                            {n.financialMetrics.keyAccountingConcept}:{" "}
+                          </span>
+                          <span>{n.financialMetrics.accountingExplanation}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

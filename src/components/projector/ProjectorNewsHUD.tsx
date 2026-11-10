@@ -17,6 +17,8 @@ import {
   Sparkles,
   Layers,
   HelpCircle,
+  BarChart3,
+  BookOpen,
 } from "lucide-react";
 
 interface ProjectorNewsHUDProps {
@@ -232,17 +234,101 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
               ))}
             </div>
 
-            {/* Ultra High-Visibility Headline (Pure Text) */}
-            <div className="p-4 rounded-ui bg-surface-subtle/40 border border-borderSubtle">
+            {/* Ultra High-Visibility Headline (Newspaper Style) */}
+            <div className="p-4 sm:p-5 rounded-ui bg-surface-subtle/50 border border-borderSubtle space-y-1.5">
+              <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-accent uppercase tracking-widest">
+                <Newspaper className="w-3.5 h-3.5" />
+                <span>Financial Times & Dalal Street Wire • Bureau Dispatch</span>
+              </div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
                 {activeNews.title}
               </h1>
             </div>
 
-            {/* Full Story Narrative Text */}
-            <div className="p-4 sm:p-5 rounded-ui bg-surface-subtle/80 border border-borderSubtle text-sm sm:text-base text-slate-100 leading-relaxed font-sans">
-              <p>{activeNews.description}</p>
+            {/* Full Story Narrative Text (Multi-paragraph Newspaper Article) */}
+            <div className="p-4 sm:p-5 rounded-ui bg-surface-subtle/80 border border-borderSubtle text-sm sm:text-base text-slate-100 leading-relaxed font-sans space-y-3">
+              {activeNews.newspaperBody && activeNews.newspaperBody.length > 0 ? (
+                activeNews.newspaperBody.map((paragraph, pIdx) => (
+                  <p key={pIdx} className="leading-relaxed">
+                    {paragraph}
+                  </p>
+                ))
+              ) : (
+                <p className="leading-relaxed">{activeNews.description}</p>
+              )}
             </div>
+
+            {/* Key Accounting & Financial Indicators Breakdown */}
+            {activeNews.financialMetrics && (
+              <div className="p-4 sm:p-5 rounded-ui bg-surface border border-accent/30 space-y-3.5">
+                <div className="flex items-center justify-between pb-2 border-b border-borderSubtle">
+                  <span className="text-xs font-mono font-bold text-accent uppercase tracking-wider flex items-center gap-1.5">
+                    <BarChart3 className="w-4 h-4" />
+                    <span>Financial Statement & Accounting Breakdown</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-neutralMuted uppercase">
+                    Balance Sheet & P&L Analysis
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {activeNews.financialMetrics.revenue && (
+                    <div className="p-3 bg-surface-subtle rounded-ui border border-borderSubtle space-y-1">
+                      <div className="text-[10px] font-mono uppercase text-neutralMuted font-bold">
+                        Topline Turnover (Revenue)
+                      </div>
+                      <div className="text-xs sm:text-sm font-bold text-white font-mono">
+                        {activeNews.financialMetrics.revenue}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeNews.financialMetrics.operatingProfit && (
+                    <div className="p-3 bg-surface-subtle rounded-ui border border-borderSubtle space-y-1">
+                      <div className="text-[10px] font-mono uppercase text-neutralMuted font-bold">
+                        Operating Profit (EBITDA)
+                      </div>
+                      <div className="text-xs sm:text-sm font-bold text-white font-mono">
+                        {activeNews.financialMetrics.operatingProfit}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeNews.financialMetrics.netProfit && (
+                    <div className="p-3 bg-surface-subtle rounded-ui border border-borderSubtle space-y-1">
+                      <div className="text-[10px] font-mono uppercase text-neutralMuted font-bold">
+                        Bottomline (Net Profit / PAT)
+                      </div>
+                      <div className="text-xs sm:text-sm font-bold text-white font-mono">
+                        {activeNews.financialMetrics.netProfit}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeNews.financialMetrics.cashFlowOrDebt && (
+                    <div className="p-3 bg-surface-subtle rounded-ui border border-borderSubtle space-y-1">
+                      <div className="text-[10px] font-mono uppercase text-neutralMuted font-bold">
+                        Cash Flow & Capital Structure
+                      </div>
+                      <div className="text-xs sm:text-sm font-bold text-white font-mono">
+                        {activeNews.financialMetrics.cashFlowOrDebt}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Educational Classroom Concept Highlight */}
+                <div className="p-3.5 rounded-ui bg-accent/10 border border-accent/25 space-y-1 text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-accent font-mono text-[11px] uppercase tracking-wide">
+                    <BookOpen className="w-3.5 h-3.5 text-accent" />
+                    <span>Accounting Term in Focus: {activeNews.financialMetrics.keyAccountingConcept}</span>
+                  </div>
+                  <p className="text-slate-200 text-xs sm:text-sm leading-relaxed font-sans">
+                    {activeNews.financialMetrics.accountingExplanation}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Confidential Desk Intelligence Leak */}
             {activeNews.deskWhisper && (

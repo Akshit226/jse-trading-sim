@@ -49,10 +49,21 @@ export interface Asset {
   volume: number;
 }
 
+export interface NewsFinancialMetrics {
+  revenue?: string; // Topline (Gross turnover)
+  operatingProfit?: string; // Operating Profit / EBITDA & Margins
+  netProfit?: string; // Bottomline (Profit After Tax - PAT)
+  cashFlowOrDebt?: string; // Free Cash Flow, CapEx, or Debt-to-Equity
+  keyAccountingConcept: string; // Simple business/accounting term explained
+  accountingExplanation: string; // Plain-English newspaper breakdown for students
+}
+
 export interface NewsEvent {
   id: string;
   title: string;
   description: string;
+  newspaperBody?: string[]; // Multi-paragraph newspaper dispatch
+  financialMetrics?: NewsFinancialMetrics;
   affectedAsset: AssetId | "ALL" | AssetCategory;
   affectedSector?: string;
   affectedCompanies?: AssetId[];
