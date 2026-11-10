@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { NewsEvent, RoomState, StudentDesk, AssetId, PlayerPortfolio } from "@/types/trading";
 import {
   advanceRound,
@@ -45,9 +45,6 @@ import {
   TrendingDown,
   RefreshCw,
   AlertTriangle,
-  UserCheck,
-  ArrowRight,
-  Gamepad2,
 } from "lucide-react";
 import {
   formatINR,
@@ -59,7 +56,6 @@ import {
 import Link from "next/link";
 
 function HostDashboardContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const roomParam = searchParams.get("room") || "WALLST";
   const [roomCode, setRoomCode] = useState(roomParam.toUpperCase());
@@ -68,7 +64,6 @@ function HostDashboardContent() {
   // Security gate state
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [pinInput, setPinInput] = useState("");
-  const [hostPlayerName, setHostPlayerName] = useState("");
   const [pinError, setPinError] = useState(false);
 
   // Real-time Firebase RTDB connection status
@@ -115,31 +110,6 @@ function HostDashboardContent() {
     } else {
       setPinError(true);
     }
-  };
-
-  const handleHostJoinAsPlayer = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const pin = pinInput.trim();
-    if (pin !== "8797") {
-      setPinError(true);
-      return;
-    }
-    setPinError(false);
-    sessionStorage.setItem("jse_teacher_authorized", "true");
-    const nameToUse = hostPlayerName.trim() || "Faculty Host";
-    const uid = `player_custom_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const email = `faculty.${Date.now()}@jainuniversity.ac.in`;
-
-    localStorage.setItem("trading_sim_player_name", nameToUse);
-    localStorage.setItem("trading_sim_player_email", email);
-    localStorage.setItem("trading_sim_player_id", uid);
-
-    const query = new URLSearchParams({
-      name: nameToUse,
-      email,
-      uid,
-    });
-    router.push(`/play/${roomCode}?${query.toString()}`);
   };
 
   const handleLock = () => {
@@ -322,15 +292,14 @@ function HostDashboardContent() {
 
           <form onSubmit={handleUnlock} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-neutralMuted uppercase tracking-wider mb-1 font-mono flex justify-between">
-                <span>Security PIN</span>
-                <span className="text-[10px] text-accent font-mono font-bold">PIN: 8797</span>
+              <label className="block text-xs font-bold text-neutralMuted uppercase tracking-wider mb-1 font-mono text-center">
+                Security PIN
               </label>
               <input
                 type="password"
                 autoFocus
                 required
-                placeholder="Enter PIN (8797)"
+                placeholder="••••"
                 value={pinInput}
                 onChange={(e) => {
                   setPinInput(e.target.value);
@@ -343,48 +312,16 @@ function HostDashboardContent() {
               {pinError && (
                 <div className="text-xs text-loss font-bold text-center mt-1.5 flex items-center justify-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Invalid PIN. Access restricted to authorized faculty (PIN: 8797).</span>
+                  <span>Invalid PIN. Access restricted to authorized faculty.</span>
                 </div>
               )}
             </div>
 
-            {/* Direct Play with Custom Name */}
-            <div className="p-3 bg-accent/10 border border-accent/30 rounded-ui space-y-2">
-              <label className="block text-xs font-bold text-white uppercase tracking-wider flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <UserCheck className="w-4 h-4 text-accent" />
-                  <span>Play Floor as Custom Trader</span>
-                </span>
-                <span className="text-[10px] text-gain font-mono font-bold">BYPASSES EMAIL</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Type player name (e.g. Prof. Sharma, Akshit)"
-                value={hostPlayerName}
-                onChange={(e) => setHostPlayerName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleHostJoinAsPlayer();
-                  }
-                }}
-                className="w-full min-h-touch bg-surface border border-borderSubtle focus:border-accent rounded-ui px-3.5 py-2 text-xs text-white placeholder:text-neutralMuted/60 focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => handleHostJoinAsPlayer()}
-                className="w-full min-h-touch py-2 bg-accent hover:bg-accent-hover text-white font-bold text-xs uppercase tracking-wider rounded-ui shadow-ui motion-btn-press flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Enter Floor as {hostPlayerName.trim() || "Faculty Host"}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
             <button
               type="submit"
-              className="w-full min-h-touch py-2.5 bg-surface-subtle hover:bg-surface border border-borderSubtle hover:border-borderStrong text-white font-bold text-xs uppercase tracking-wider rounded-ui shadow-ui motion-btn-press"
+              className="w-full min-h-touch py-3 bg-accent hover:bg-accent-hover text-white font-bold text-xs uppercase tracking-wider rounded-ui shadow-ui motion-btn-press cursor-pointer"
             >
-              Unlock Facilitator Console
+              Unlock Console
             </button>
           </form>
 
@@ -466,16 +403,6 @@ function HostDashboardContent() {
               <RefreshCw className={`w-3.5 h-3.5 text-accent ${isSyncing ? "animate-spin" : ""}`} />
               <span>{isSyncing ? "Syncing..." : "Sync Floor"}</span>
             </button>
-
-            <Link
-              href={`/play/${roomCode}`}
-              target="_blank"
-              className="min-h-touch px-3 py-1.5 rounded-ui bg-accent/15 hover:bg-accent/25 border border-accent/40 text-xs font-bold text-accent hover:text-white motion-btn-press flex items-center gap-1.5"
-              title="Open trading floor as trader in new tab"
-            >
-              <Gamepad2 className="w-3.5 h-3.5 text-accent" />
-              <span>Play on Floor</span>
-            </Link>
 
             <Link
               href={`/projector/${roomCode}`}
