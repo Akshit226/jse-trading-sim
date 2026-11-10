@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { NewsEvent, Asset, AssetId } from "@/types/trading";
 import { getCompanyFullName, getCompanyIndustry, getCompanySubSector, formatINR } from "@/lib/constants";
+import { PRESET_NEWS_SCENARIOS } from "@/lib/engine/newsScenarios";
 import { PriceChart } from "@/components/trading/PriceChart";
 import { sounds } from "@/lib/audio";
 import { newsSpeaker } from "@/lib/voice/newsSpeaker";
@@ -17,41 +18,17 @@ import {
   Newspaper,
   ShieldAlert,
   Volume2,
-  VolumeX,
-  RotateCcw,
   Sparkles,
+  Layers,
+  CheckCircle2,
 } from "lucide-react";
 
 interface ProjectorNewsHUDProps {
   currentNews: NewsEvent | null;
-  newsHistory: NewsEvent[];
+  newsHistory?: NewsEvent[];
   currentRound: number;
   selectedAsset?: Asset;
 }
-
-const PRESET_VIDEO_IDS = new Set([
-  "r1-tatamotors-ev-surge",
-  "r1-zomato-blinkit-profits",
-  "r2-rbi-rate-hike-banking",
-  "r2-us-tech-spending-cut",
-  "r3-adani-hindenburg-shock",
-  "r3-reliance-jio-green-energy",
-  "r4-hybrid-gst-concession",
-  "r4-fii-sovereign-inflow",
-  "r5-itc-hotels-demerger-dividend",
-  "r5-tcs-mega-ai-contract",
-  // Legacy alias support
-  "r1-tataelxsi-earnings",
-  "r1-fmcg-festive-demand",
-  "r2-inflation-fmcg",
-  "r2-rbi-rate-hike",
-  "r3-global-slowdown",
-  "r3-coforge-ai-deal",
-  "r4-excise-policy",
-  "r4-fii-mega-inflow",
-  "r5-ofss-mega-dividend",
-  "r5-brokerage-upgrade",
-]);
 
 export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
   currentNews,
@@ -59,18 +36,14 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
   currentRound,
   selectedAsset,
 }) => {
-  // If user explicitly chooses to inspect the technical price chart
+  // View mode switcher: pure text news wire vs technical chart
   const [viewMode, setViewMode] = useState<"news" | "chart">("news");
 
-  // Selected news item to inspect from history (defaults to latest)
+  // Selected news item to inspect from wire archive (defaults to active news)
   const [selectedNewsId, setSelectedNewsId] = useState<string | null>(null);
   const lastNewsIdRef = useRef<string | null>(null);
 
-  // Video anchor state
-  const [videoMuted, setVideoMuted] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  // When a new news event arrives, prioritize it immediately and play sound/TTS cues
+  // When a new live broadcast shock arrives, trigger sound and speech cues
   useEffect(() => {
     if (currentNews && currentNews.id !== lastNewsIdRef.current) {
       lastNewsIdRef.current = currentNews.id;
@@ -85,42 +58,54 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
         sounds.playBreakingNews();
       }
 
-      // If pre-rendered anchor video exists, video plays its own anchor voice!
-      // If it's a dynamic custom announcement created on the fly, TTS provides speech.
-      if (!PRESET_VIDEO_IDS.has(currentNews.id)) {
-        newsSpeaker.speak(currentNews);
-      }
+      newsSpeaker.speak(currentNews);
     }
   }, [currentNews]);
 
-  // Determine active news event to show (currentNews -> selected historical -> latest in history)
-  const activeNews: NewsEvent | null = (() => {
+  // Round-specific scheduled scenarios from presets
+  const roundScenarios = useMemo(() => {
+    const matching = PRESET_NEWS_SCENARIOS.filter((s) => s.round === currentRound);
+    return matching.length > 0 ? matching : [PRESET_NEWS_SCENARIOS[0]];
+  }, [currentRound]);
+
+  // Default news for this round if no live shock broadcasted yet
+  const defaultRoundNews = roundScenarios[0];
+
+  // Resolve active news to display:
+  // 1. If user clicked a specific story from round stories / history archive, show it.
+  // 2. Otherwise if a live news shock was broadcasted, show currentNews.
+  // 3. Otherwise show the round's scheduled news catalyst (NEVER empty!).
+  const activeNews: NewsEvent = useMemo(() => {
     if (selectedNewsId) {
-      const found = [currentNews, ...newsHistory].find((n) => n?.id === selectedNewsId);
+      const allAvailable = [
+        currentNews,
+        ...newsHistory,
+        ...roundScenarios,
+        ...PRESET_NEWS_SCENARIOS,
+      ].filter(Boolean) as NewsEvent[];
+      const found = allAvailable.find((n) => n.id === selectedNewsId);
       if (found) return found;
     }
     if (currentNews) return currentNews;
-    if (newsHistory && newsHistory.length > 0) return newsHistory[newsHistory.length - 1];
-    return null;
-  })();
+    return defaultRoundNews;
+  }, [selectedNewsId, currentNews, defaultRoundNews, newsHistory, roundScenarios]);
 
-  const isBullish = activeNews?.sentiment?.includes("bullish");
-  const isBearish = activeNews?.sentiment?.includes("bearish");
-  const isPriceUp = (activeNews?.priceImpact || 0) >= 0;
-  const hasPreRenderedVideo = activeNews?.id ? PRESET_VIDEO_IDS.has(activeNews.id) : false;
+  const isBullish = activeNews.sentiment?.includes("bullish");
+  const isBearish = activeNews.sentiment?.includes("bearish");
+  const isPriceUp = (activeNews.priceImpact || 0) >= 0;
+  const isLiveShock = currentNews && currentNews.id === activeNews.id;
 
-  const handleReplayVideo = () => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
+  const handleReadAloud = () => {
+    if (activeNews) {
+      newsSpeaker.speak(activeNews);
     }
   };
 
   return (
-    <div className="card-surface p-5 sm:p-6 space-y-4 border border-borderSubtle motion-catalyst-shock relative flex flex-col justify-between min-h-[440px]">
-      {/* Top HUD Control Bar */}
+    <div className="card-surface p-5 sm:p-6 space-y-5 border border-borderSubtle relative flex flex-col justify-between min-h-[480px]">
+      {/* Top HUD Control & Status Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-borderSubtle">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <span className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
@@ -128,7 +113,7 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-bold uppercase tracking-wider text-white font-mono flex items-center gap-1.5">
               <Radio className="w-4 h-4 text-rose-500 animate-pulse" />
-              <span>Floor Intelligence & Anchor News Desk</span>
+              <span>Floor Intelligence & News Wire</span>
             </h2>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-subtle border border-borderSubtle text-accent font-bold">
               ROUND {currentRound}
@@ -136,35 +121,50 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
           </div>
         </div>
 
-        {/* HUD View Switcher (News Wire vs Technical Chart) */}
-        <div className="flex items-center gap-1 p-1 bg-surface-subtle border border-borderSubtle rounded-ui font-mono text-xs">
-          <button
-            type="button"
-            onClick={() => setViewMode("news")}
-            className={`px-3 py-1 rounded text-xs font-bold transition-all flex items-center gap-1.5 motion-btn-press ${
-              viewMode === "news"
-                ? "bg-rose-500 text-white shadow-ui"
-                : "text-neutralMuted hover:text-white"
-            }`}
-          >
-            <Newspaper className="w-3.5 h-3.5" />
-            <span>Anchor Broadcast</span>
-          </button>
+        <div className="flex items-center gap-2">
+          {/* Live Catalyst / Round Scheduled Badge */}
+          {isLiveShock ? (
+            <span className="text-[11px] font-mono font-extrabold uppercase px-2.5 py-1 rounded bg-gain-subtle text-gain border border-gain-border flex items-center gap-1.5 animate-pulse">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Live Shock Active on Floor</span>
+            </span>
+          ) : (
+            <span className="text-[11px] font-mono font-bold uppercase px-2.5 py-1 rounded bg-surface-subtle text-neutralMuted border border-borderSubtle flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-accent" />
+              <span>Round {currentRound} News Catalyst</span>
+            </span>
+          )}
 
-          {selectedAsset && (
+          {/* View Switcher: News Wire vs Technical Chart */}
+          <div className="flex items-center gap-1 p-1 bg-surface-subtle border border-borderSubtle rounded-ui font-mono text-xs">
             <button
               type="button"
-              onClick={() => setViewMode("chart")}
+              onClick={() => setViewMode("news")}
               className={`px-3 py-1 rounded text-xs font-bold transition-all flex items-center gap-1.5 motion-btn-press ${
-                viewMode === "chart"
-                  ? "bg-accent text-white shadow-ui"
+                viewMode === "news"
+                  ? "bg-rose-500 text-white shadow-ui"
                   : "text-neutralMuted hover:text-white"
               }`}
             >
-              <LineChart className="w-3.5 h-3.5" />
-              <span>Chart ({selectedAsset.id})</span>
+              <Newspaper className="w-3.5 h-3.5" />
+              <span>News Wire</span>
             </button>
-          )}
+
+            {selectedAsset && (
+              <button
+                type="button"
+                onClick={() => setViewMode("chart")}
+                className={`px-3 py-1 rounded text-xs font-bold transition-all flex items-center gap-1.5 motion-btn-press ${
+                  viewMode === "chart"
+                    ? "bg-accent text-white shadow-ui"
+                    : "text-neutralMuted hover:text-white"
+                }`}
+              >
+                <LineChart className="w-3.5 h-3.5" />
+                <span>Chart ({selectedAsset.id})</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -197,253 +197,210 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
               </div>
             </div>
           </div>
-          <PriceChart asset={selectedAsset} height={300} hideHeader={true} hideWrapper={true} />
-        </div>
-      ) : activeNews ? (
-        <div className="space-y-4 flex-1 flex flex-col justify-between">
-          {/* Main Grid: TV News Anchor Video Broadcast (Left) + Catalyst Details (Right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch flex-1">
-            {/* Left: TV News Anchor Broadcast Video Monitor (5 cols) */}
-            <div className="lg:col-span-5 flex flex-col rounded-ui overflow-hidden bg-black border border-borderSubtle relative shadow-2xl min-h-[260px] justify-between">
-              <div className="relative w-full h-full min-h-[240px] flex items-center justify-center overflow-hidden bg-black">
-                {/* News Anchor Video or Studio Avatar */}
-                {hasPreRenderedVideo ? (
-                  <video
-                    ref={videoRef}
-                    key={activeNews.id}
-                    src={`/videos/news/${activeNews.id}.mp4`}
-                    poster="/news-anchor.jpg"
-                    autoPlay
-                    playsInline
-                    muted={videoMuted}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <img
-                    src="/news-anchor.jpg"
-                    alt="JSE News Anchor"
-                    className="w-full h-full object-cover"
-                  />
-                )}
-
-                {/* Live Anchor ON-AIR Badge */}
-                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-red-500/50 text-[10px] font-mono font-bold text-red-400">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                  <span>ON AIR</span>
-                </div>
-
-                {/* Control Overlay (Mute & Replay) */}
-                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
-                  {hasPreRenderedVideo && (
-                    <button
-                      type="button"
-                      onClick={handleReplayVideo}
-                      className="p-1.5 rounded-full bg-black/70 hover:bg-black text-white text-xs border border-white/20 transition-all motion-btn-press"
-                      title="Replay Anchor Broadcast"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setVideoMuted(!videoMuted)}
-                    className="p-1.5 rounded-full bg-black/70 hover:bg-black text-white text-xs border border-white/20 transition-all motion-btn-press"
-                    title={videoMuted ? "Unmute Anchor" : "Mute Anchor"}
-                  >
-                    {videoMuted ? (
-                      <VolumeX className="w-3.5 h-3.5 text-neutralMuted" />
-                    ) : (
-                      <Volume2 className="w-3.5 h-3.5 text-accent" />
-                    )}
-                  </button>
-                </div>
-
-                {/* TV News Lower-Thirds Headline Overlay */}
-                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/85 to-transparent p-3 pt-6 font-mono">
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-accent uppercase tracking-wider">
-                    <Radio className="w-3 h-3 text-red-500 animate-pulse" />
-                    <span>JSE Newsroom Anchor Desk</span>
-                  </div>
-                  <p className="text-white text-xs font-bold truncate leading-tight mt-0.5">
-                    {activeNews.title}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Catalyst Details, Full Story & Leak (7 cols) */}
-            <div className="lg:col-span-7 flex flex-col justify-between space-y-3">
-              <div className="space-y-3">
-                {/* Catalyst Badges */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`text-xs font-mono font-extrabold uppercase px-2.5 py-0.5 rounded border flex items-center gap-1.5 ${
-                      isBullish
-                        ? "bg-gain-subtle text-gain border-gain-border"
-                        : isBearish
-                        ? "bg-loss-subtle text-loss border-loss-border"
-                        : "bg-surface-subtle text-warningMuted border-borderSubtle"
-                    }`}
-                  >
-                    <Zap className="w-3.5 h-3.5 shrink-0" />
-                    <span>{isBullish ? "Bullish Shock" : isBearish ? "Bearish Shock" : "Alert"}</span>
-                  </span>
-
-                  <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-accent/15 border border-accent/40 text-accent font-bold uppercase">
-                    {activeNews.affectedSector ||
-                      (activeNews.affectedAsset === "ALL"
-                        ? "Market-Wide (All 10 Bluechips)"
-                        : `${getCompanyFullName(activeNews.affectedAsset)} • ${getCompanyIndustry(activeNews.affectedAsset)}`)}
-                  </span>
-
-                  <span
-                    className={`text-xs font-mono font-extrabold px-2.5 py-0.5 rounded border flex items-center gap-1 ml-auto tabular-nums ${
-                      isPriceUp
-                        ? "bg-gain-subtle text-gain border-gain-border"
-                        : "bg-loss-subtle text-loss border-loss-border"
-                    }`}
-                  >
-                    {isPriceUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                    <span>{isPriceUp ? "+" : ""}{(activeNews.priceImpact * 100).toFixed(0)}% Shift</span>
-                  </span>
-                </div>
-
-                {/* Direct Company Impact Indicator Box */}
-                <div className="p-2.5 rounded-ui bg-surface/90 border border-borderSubtle flex flex-wrap items-center gap-2 font-mono text-xs">
-                  <span className="text-[10px] font-bold text-neutralMuted uppercase">Direct Impact:</span>
-                  {(activeNews.affectedCompanies && activeNews.affectedCompanies.length > 0
-                    ? activeNews.affectedCompanies
-                    : activeNews.affectedAsset === "ALL"
-                    ? (["RELIANCE", "TATAMOTORS", "TCS", "HDFCBANK", "INFY", "ITC", "ZOMATO", "ADANIENT", "SBIN", "MARUTI"] as AssetId[])
-                    : ([activeNews.affectedAsset as AssetId])
-                  ).map((sym) => (
-                    <span
-                      key={sym}
-                      className={`px-2 py-0.5 rounded text-[11px] font-bold border flex items-center gap-1 ${
-                        isPriceUp
-                          ? "bg-gain-subtle text-gain border-gain-border"
-                          : "bg-loss-subtle text-loss border-loss-border"
-                      }`}
-                    >
-                      <span>{isPriceUp ? "▲" : "▼"}</span>
-                      <span>{getCompanyFullName(sym)} ({sym})</span>
-                      <span className="tabular-nums font-extrabold">
-                        {isPriceUp ? "+" : ""}{(activeNews.priceImpact * 100).toFixed(0)}%
-                      </span>
-                    </span>
-                  ))}
-                </div>
-
-                {/* High-Impact Headline */}
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
-                  {activeNews.title}
-                </h1>
-
-                {/* Narrative Details */}
-                <div className="p-3.5 rounded-ui bg-surface-subtle/80 border border-borderSubtle text-xs sm:text-sm text-neutral-200 leading-relaxed font-sans">
-                  {activeNews.description}
-                </div>
-
-                {/* Confidential Desk Whisper */}
-                {activeNews.deskWhisper && (
-                  <div className="p-3 rounded-ui bg-accent-subtle/40 border-l-4 border-accent text-xs font-mono text-accent-light space-y-0.5">
-                    <div className="flex items-center gap-1 font-bold uppercase tracking-wider text-accent text-[10px]">
-                      <ShieldAlert className="w-3 h-3" />
-                      <span>Confidential Intelligence ({activeNews.deskWhisper.desk.toUpperCase()})</span>
-                    </div>
-                    <p className="text-neutral-200 text-[11px] leading-relaxed">
-                      {activeNews.deskWhisper.rumorText}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Timestamp and Broadcaster Footer */}
-              <div className="flex items-center justify-between text-[11px] font-mono text-neutralMuted pt-2 border-t border-borderSubtle">
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-accent" />
-                  <span>Round {activeNews.round || currentRound} • NSE Live Broadcast</span>
-                </div>
-                {currentNews && currentNews.id === activeNews.id && (
-                  <span className="text-gain font-bold uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" />
-                    Market Moving Now
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+          <PriceChart asset={selectedAsset} height={320} hideHeader={true} hideWrapper={true} />
         </div>
       ) : (
-        /* Standby State: When no news has been broadcasted yet */
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 my-4">
-          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-borderSubtle relative mb-1">
-            <img src="/news-anchor.jpg" alt="Anchor Standby" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-accent/20" />
+        /* Pure Text News Display */
+        <div className="space-y-4 flex-1 flex flex-col justify-between">
+          <div className="space-y-4">
+            {/* Catalyst Badges & Target Impact */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`text-xs font-mono font-extrabold uppercase px-3 py-1 rounded border flex items-center gap-1.5 ${
+                  isBullish
+                    ? "bg-gain-subtle text-gain border-gain-border"
+                    : isBearish
+                    ? "bg-loss-subtle text-loss border-loss-border"
+                    : "bg-surface-subtle text-warningMuted border-borderSubtle"
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5 shrink-0" />
+                <span>{isBullish ? "Bullish Catalyst" : isBearish ? "Bearish Shock" : "Market Alert"}</span>
+              </span>
+
+              <span className="text-xs font-mono px-3 py-1 rounded bg-accent/15 border border-accent/40 text-accent font-bold uppercase">
+                {activeNews.affectedSector ||
+                  (activeNews.affectedAsset === "ALL"
+                    ? "Broad Market (All 10 Bluechips)"
+                    : `${getCompanyFullName(activeNews.affectedAsset)} • ${getCompanyIndustry(activeNews.affectedAsset)}`)}
+              </span>
+
+              <span
+                className={`text-xs font-mono font-extrabold px-3 py-1 rounded border flex items-center gap-1 ml-auto tabular-nums ${
+                  isPriceUp
+                    ? "bg-gain-subtle text-gain border-gain-border"
+                    : "bg-loss-subtle text-loss border-loss-border"
+                }`}
+              >
+                {isPriceUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                <span>{isPriceUp ? "+" : ""}{(activeNews.priceImpact * 100).toFixed(0)}% Price Shift</span>
+              </span>
+
+              <button
+                type="button"
+                onClick={handleReadAloud}
+                className="p-1.5 rounded bg-surface-subtle hover:bg-surface border border-borderSubtle text-neutralMuted hover:text-white transition-colors"
+                title="Read News Aloud"
+              >
+                <Volume2 className="w-4 h-4 text-accent" />
+              </button>
+            </div>
+
+            {/* Direct Company Impact Indicator Badges */}
+            <div className="p-3 rounded-ui bg-surface/90 border border-borderSubtle flex flex-wrap items-center gap-2 font-mono text-xs">
+              <span className="text-[11px] font-bold text-neutralMuted uppercase tracking-wider">
+                Direct Impact:
+              </span>
+              {(activeNews.affectedCompanies && activeNews.affectedCompanies.length > 0
+                ? activeNews.affectedCompanies
+                : activeNews.affectedAsset === "ALL"
+                ? (["RELIANCE", "TATAMOTORS", "TCS", "HDFCBANK", "INFY", "ITC", "ZOMATO", "ADANIENT", "SBIN", "MARUTI"] as AssetId[])
+                : ([activeNews.affectedAsset as AssetId])
+              ).map((sym) => (
+                <span
+                  key={sym}
+                  className={`px-2.5 py-1 rounded text-xs font-bold border flex items-center gap-1.5 ${
+                    isPriceUp
+                      ? "bg-gain-subtle text-gain border-gain-border"
+                      : "bg-loss-subtle text-loss border-loss-border"
+                  }`}
+                >
+                  <span className="font-extrabold">{isPriceUp ? "▲" : "▼"}</span>
+                  <span className="text-white">{getCompanyFullName(sym)}</span>
+                  <span className="text-neutralMuted font-normal">({sym})</span>
+                  <span className="tabular-nums font-black ml-0.5">
+                    {isPriceUp ? "+" : ""}{(activeNews.priceImpact * 100).toFixed(0)}%
+                  </span>
+                </span>
+              ))}
+            </div>
+
+            {/* Ultra High-Visibility Headline (Pure Text) */}
+            <div className="p-4 rounded-ui bg-surface-subtle/40 border border-borderSubtle">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
+                {activeNews.title}
+              </h1>
+            </div>
+
+            {/* Full Story Narrative Text */}
+            <div className="p-4 sm:p-5 rounded-ui bg-surface-subtle/80 border border-borderSubtle text-sm sm:text-base text-slate-100 leading-relaxed font-sans">
+              <p>{activeNews.description}</p>
+            </div>
+
+            {/* Confidential Desk Intelligence Leak */}
+            {activeNews.deskWhisper && (
+              <div className="p-3.5 rounded-ui bg-accent-subtle/30 border-l-4 border-accent text-xs font-mono space-y-1">
+                <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-accent text-[11px]">
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  <span>Confidential Intelligence Leak ({activeNews.deskWhisper.desk.toUpperCase()})</span>
+                </div>
+                <p className="text-neutral-200 text-xs sm:text-sm leading-relaxed font-sans">
+                  {activeNews.deskWhisper.rumorText}
+                </p>
+              </div>
+            )}
           </div>
-          <h3 className="text-lg font-bold text-white tracking-tight uppercase font-mono">
-            JSE Newsroom Anchor Desk Online
-          </h3>
-          <p className="text-xs text-neutralMuted max-w-md font-mono leading-relaxed">
-            Anchor is standing by at the broadcast desk. When the instructor releases breaking headlines, earnings beats, or macroeconomic shocks, the anchor will deliver the video broadcast live to the trading floor.
-          </p>
-          <div className="pt-2 flex items-center gap-2 text-xs font-mono text-accent">
-            <Clock className="w-3.5 h-3.5" />
-            <span>Round {currentRound} • Live Order Flow Streaming</span>
+
+          {/* Footer Metadata */}
+          <div className="flex items-center justify-between text-xs font-mono text-neutralMuted pt-3 border-t border-borderSubtle">
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-accent" />
+              <span>Round {activeNews.round || currentRound} • NSE Financial Wire</span>
+            </div>
+            {isLiveShock ? (
+              <span className="text-gain font-bold uppercase tracking-wider flex items-center gap-1 text-xs">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Active Market Catalyst
+              </span>
+            ) : (
+              <span className="text-neutralMuted text-xs">
+                Scheduled Round Catalyst
+              </span>
+            )}
           </div>
         </div>
       )}
 
-      {/* News History Carousel / Archive Strip (Bottom of HUD) */}
-      {newsHistory && newsHistory.length > 0 && (
-        <div className="pt-3 border-t border-borderSubtle space-y-2">
-          <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase tracking-wider text-neutralMuted">
-            <span className="flex items-center gap-1">
-              <History className="w-3 h-3 text-accent" />
-              <span>Broadcast Archive ({newsHistory.length} Recorded)</span>
-            </span>
-            <span>Click any broadcast to replay video</span>
-          </div>
+      {/* Round Scenarios & History Wire Strip */}
+      <div className="pt-3 border-t border-borderSubtle space-y-2">
+        <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase tracking-wider text-neutralMuted">
+          <span className="flex items-center gap-1">
+            <Layers className="w-3.5 h-3.5 text-accent" />
+            <span>Round {currentRound} Stories & Broadcast Wire</span>
+          </span>
+          <span>Click any headline to view details</span>
+        </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
-            {newsHistory.map((item, idx) => {
+        <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+          {/* Round Scenarios Buttons */}
+          {roundScenarios.map((item, idx) => {
+            const itemPos = (item.priceImpact || 0) >= 0;
+            const isSelected = activeNews?.id === item.id;
+
+            return (
+              <button
+                key={`round-${item.id}-${idx}`}
+                type="button"
+                onClick={() => {
+                  setSelectedNewsId(item.id);
+                  setViewMode("news");
+                }}
+                className={`px-3 py-2 rounded-ui border text-left shrink-0 max-w-[280px] font-mono text-xs transition-all motion-btn-press ${
+                  isSelected
+                    ? "bg-accent-subtle/30 border-accent shadow-sm ring-1 ring-accent"
+                    : "bg-surface-subtle border-borderSubtle hover:border-borderStrong text-neutralMuted hover:text-white"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1 text-[10px] font-bold">
+                  <span className="text-accent uppercase">R{item.round || currentRound} Story {idx + 1}</span>
+                  <span className={itemPos ? "text-gain" : "text-loss"}>
+                    {itemPos ? "+" : ""}
+                    {(item.priceImpact * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="text-white text-xs font-semibold truncate mt-1">
+                  {item.title}
+                </div>
+              </button>
+            );
+          })}
+
+          {/* Historical Broadcasts if any */}
+          {newsHistory &&
+            newsHistory.map((item, idx) => {
+              if (roundScenarios.some((s) => s.id === item.id)) return null;
               const itemPos = (item.priceImpact || 0) >= 0;
               const isSelected = activeNews?.id === item.id;
 
               return (
                 <button
-                  key={`${item.id}-${idx}`}
+                  key={`hist-${item.id}-${idx}`}
                   type="button"
                   onClick={() => {
                     setSelectedNewsId(item.id);
                     setViewMode("news");
                   }}
-                  className={`px-3 py-1.5 rounded-ui border text-left shrink-0 max-w-[260px] font-mono text-xs transition-all motion-btn-press flex items-center gap-2 ${
+                  className={`px-3 py-2 rounded-ui border text-left shrink-0 max-w-[280px] font-mono text-xs transition-all motion-btn-press ${
                     isSelected
-                      ? "bg-surface border-accent shadow-sm ring-1 ring-accent"
+                      ? "bg-accent-subtle/30 border-accent shadow-sm ring-1 ring-accent"
                       : "bg-surface-subtle border-borderSubtle hover:border-borderStrong text-neutralMuted hover:text-white"
                   }`}
                 >
-                  <div className="w-7 h-7 rounded overflow-hidden shrink-0 bg-black">
-                    <img src="/news-anchor.jpg" alt="" className="w-full h-full object-cover" />
+                  <div className="flex items-center justify-between gap-1 text-[10px] font-bold">
+                    <span className="text-neutralMuted uppercase">R{item.round || 1} Broadcast</span>
+                    <span className={itemPos ? "text-gain" : "text-loss"}>
+                      {itemPos ? "+" : ""}
+                      {(item.priceImpact * 100).toFixed(0)}%
+                    </span>
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center justify-between gap-1 text-[10px] font-bold">
-                      <span className={itemPos ? "text-gain" : "text-loss"}>
-                        {itemPos ? "+" : ""}
-                        {(item.priceImpact * 100).toFixed(0)}%
-                      </span>
-                      <span className="text-neutralMuted">R{item.round || 1}</span>
-                    </div>
-                    <div className="text-white text-[11px] font-medium truncate">{item.title}</div>
+                  <div className="text-white text-xs font-semibold truncate mt-1">
+                    {item.title}
                   </div>
                 </button>
               );
             })}
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
