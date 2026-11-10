@@ -10,8 +10,6 @@ import { newsSpeaker } from "@/lib/voice/newsSpeaker";
 import {
   Radio,
   Zap,
-  TrendingUp,
-  TrendingDown,
   Clock,
   History,
   LineChart,
@@ -20,7 +18,7 @@ import {
   Volume2,
   Sparkles,
   Layers,
-  CheckCircle2,
+  HelpCircle,
 } from "lucide-react";
 
 interface ProjectorNewsHUDProps {
@@ -58,7 +56,7 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
         sounds.playBreakingNews();
       }
 
-      newsSpeaker.speak(currentNews);
+      newsSpeaker.speak(activeNews);
     }
   }, [currentNews]);
 
@@ -90,9 +88,6 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
     return defaultRoundNews;
   }, [selectedNewsId, currentNews, defaultRoundNews, newsHistory, roundScenarios]);
 
-  const isBullish = activeNews.sentiment?.includes("bullish");
-  const isBearish = activeNews.sentiment?.includes("bearish");
-  const isPriceUp = (activeNews.priceImpact || 0) >= 0;
   const isLiveShock = currentNews && currentNews.id === activeNews.id;
 
   const handleReadAloud = () => {
@@ -126,12 +121,12 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
           {isLiveShock ? (
             <span className="text-[11px] font-mono font-extrabold uppercase px-2.5 py-1 rounded bg-gain-subtle text-gain border border-gain-border flex items-center gap-1.5 animate-pulse">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Live Shock Active on Floor</span>
+              <span>Live News Broadcasted</span>
             </span>
           ) : (
             <span className="text-[11px] font-mono font-bold uppercase px-2.5 py-1 rounded bg-surface-subtle text-neutralMuted border border-borderSubtle flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-accent" />
-              <span>Round {currentRound} News Catalyst</span>
+              <span>Round {currentRound} Intelligence</span>
             </span>
           )}
 
@@ -200,56 +195,44 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
           <PriceChart asset={selectedAsset} height={320} hideHeader={true} hideWrapper={true} />
         </div>
       ) : (
-        /* Pure Text News Display */
+        /* Pure Text News Display (NO SPOILERS: Students must read and decide!) */
         <div className="space-y-4 flex-1 flex flex-col justify-between">
           <div className="space-y-4">
-            {/* Catalyst Badges & Target Impact */}
+            {/* Catalyst Sector & Decision Tag (Unbiased — No price shift spoilers!) */}
             <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`text-xs font-mono font-extrabold uppercase px-3 py-1 rounded border flex items-center gap-1.5 ${
-                  isBullish
-                    ? "bg-gain-subtle text-gain border-gain-border"
-                    : isBearish
-                    ? "bg-loss-subtle text-loss border-loss-border"
-                    : "bg-surface-subtle text-warningMuted border-borderSubtle"
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5 shrink-0" />
-                <span>{isBullish ? "Bullish Catalyst" : isBearish ? "Bearish Shock" : "Market Alert"}</span>
+              <span className="text-xs font-mono font-extrabold uppercase px-3 py-1 rounded border flex items-center gap-1.5 bg-surface-subtle text-accent border-borderSubtle">
+                <Zap className="w-3.5 h-3.5 shrink-0 text-accent" />
+                <span>Market Catalyst</span>
               </span>
 
-              <span className="text-xs font-mono px-3 py-1 rounded bg-accent/15 border border-accent/40 text-accent font-bold uppercase">
+              <span className="text-xs font-mono px-3 py-1 rounded bg-surface-subtle border border-borderSubtle text-slate-200 font-bold uppercase">
                 {activeNews.affectedSector ||
                   (activeNews.affectedAsset === "ALL"
                     ? "Broad Market (All 10 Bluechips)"
                     : `${getCompanyFullName(activeNews.affectedAsset)} • ${getCompanyIndustry(activeNews.affectedAsset)}`)}
               </span>
 
-              <span
-                className={`text-xs font-mono font-extrabold px-3 py-1 rounded border flex items-center gap-1 ml-auto tabular-nums ${
-                  isPriceUp
-                    ? "bg-gain-subtle text-gain border-gain-border"
-                    : "bg-loss-subtle text-loss border-loss-border"
-                }`}
-              >
-                {isPriceUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                <span>{isPriceUp ? "+" : ""}{(activeNews.priceImpact * 100).toFixed(0)}% Price Shift</span>
-              </span>
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-[11px] font-mono text-neutralMuted px-2.5 py-0.5 rounded bg-surface border border-borderSubtle flex items-center gap-1">
+                  <HelpCircle className="w-3 h-3 text-accent" />
+                  <span>Floor Task: Analyze & Decide</span>
+                </span>
 
-              <button
-                type="button"
-                onClick={handleReadAloud}
-                className="p-1.5 rounded bg-surface-subtle hover:bg-surface border border-borderSubtle text-neutralMuted hover:text-white transition-colors"
-                title="Read News Aloud"
-              >
-                <Volume2 className="w-4 h-4 text-accent" />
-              </button>
+                <button
+                  type="button"
+                  onClick={handleReadAloud}
+                  className="p-1.5 rounded bg-surface-subtle hover:bg-surface border border-borderSubtle text-neutralMuted hover:text-white transition-colors"
+                  title="Read News Aloud"
+                >
+                  <Volume2 className="w-4 h-4 text-accent" />
+                </button>
+              </div>
             </div>
 
-            {/* Direct Company Impact Indicator Badges */}
+            {/* Direct Company Focus Badges (Neutral — no percentage shifts or arrow spoilers!) */}
             <div className="p-3 rounded-ui bg-surface/90 border border-borderSubtle flex flex-wrap items-center gap-2 font-mono text-xs">
               <span className="text-[11px] font-bold text-neutralMuted uppercase tracking-wider">
-                Direct Impact:
+                Focus Equities:
               </span>
               {(activeNews.affectedCompanies && activeNews.affectedCompanies.length > 0
                 ? activeNews.affectedCompanies
@@ -259,18 +242,11 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
               ).map((sym) => (
                 <span
                   key={sym}
-                  className={`px-2.5 py-1 rounded text-xs font-bold border flex items-center gap-1.5 ${
-                    isPriceUp
-                      ? "bg-gain-subtle text-gain border-gain-border"
-                      : "bg-loss-subtle text-loss border-loss-border"
-                  }`}
+                  className="px-2.5 py-1 rounded text-xs font-bold border border-borderSubtle bg-surface-subtle text-white flex items-center gap-1.5"
                 >
-                  <span className="font-extrabold">{isPriceUp ? "▲" : "▼"}</span>
-                  <span className="text-white">{getCompanyFullName(sym)}</span>
-                  <span className="text-neutralMuted font-normal">({sym})</span>
-                  <span className="tabular-nums font-black ml-0.5">
-                    {isPriceUp ? "+" : ""}{(activeNews.priceImpact * 100).toFixed(0)}%
-                  </span>
+                  <span className="text-accent font-mono font-bold">{sym}</span>
+                  <span className="text-neutralMuted font-normal">—</span>
+                  <span className="text-slate-200">{getCompanyFullName(sym)}</span>
                 </span>
               ))}
             </div>
@@ -307,21 +283,14 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
               <Clock className="w-3.5 h-3.5 text-accent" />
               <span>Round {activeNews.round || currentRound} • NSE Financial Wire</span>
             </div>
-            {isLiveShock ? (
-              <span className="text-gain font-bold uppercase tracking-wider flex items-center gap-1 text-xs">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Active Market Catalyst
-              </span>
-            ) : (
-              <span className="text-neutralMuted text-xs">
-                Scheduled Round Catalyst
-              </span>
-            )}
+            <span className="text-neutralMuted text-xs font-mono">
+              Traders must analyze fundamentals and decide order flow
+            </span>
           </div>
         </div>
       )}
 
-      {/* Round Scenarios & History Wire Strip */}
+      {/* Round Scenarios & History Wire Strip (NO percentage spoilers!) */}
       <div className="pt-3 border-t border-borderSubtle space-y-2">
         <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase tracking-wider text-neutralMuted">
           <span className="flex items-center gap-1">
@@ -334,7 +303,6 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
         <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
           {/* Round Scenarios Buttons */}
           {roundScenarios.map((item, idx) => {
-            const itemPos = (item.priceImpact || 0) >= 0;
             const isSelected = activeNews?.id === item.id;
 
             return (
@@ -353,9 +321,8 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
               >
                 <div className="flex items-center justify-between gap-1 text-[10px] font-bold">
                   <span className="text-accent uppercase">R{item.round || currentRound} Story {idx + 1}</span>
-                  <span className={itemPos ? "text-gain" : "text-loss"}>
-                    {itemPos ? "+" : ""}
-                    {(item.priceImpact * 100).toFixed(0)}%
+                  <span className="text-neutralMuted uppercase">
+                    {item.affectedCompanies?.[0] || item.affectedAsset}
                   </span>
                 </div>
                 <div className="text-white text-xs font-semibold truncate mt-1">
@@ -369,7 +336,6 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
           {newsHistory &&
             newsHistory.map((item, idx) => {
               if (roundScenarios.some((s) => s.id === item.id)) return null;
-              const itemPos = (item.priceImpact || 0) >= 0;
               const isSelected = activeNews?.id === item.id;
 
               return (
@@ -387,10 +353,9 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-1 text-[10px] font-bold">
-                    <span className="text-neutralMuted uppercase">R{item.round || 1} Broadcast</span>
-                    <span className={itemPos ? "text-gain" : "text-loss"}>
-                      {itemPos ? "+" : ""}
-                      {(item.priceImpact * 100).toFixed(0)}%
+                    <span className="text-neutralMuted uppercase">R{item.round || 1} Dispatch</span>
+                    <span className="text-neutralMuted uppercase">
+                      {item.affectedCompanies?.[0] || item.affectedAsset}
                     </span>
                   </div>
                   <div className="text-white text-xs font-semibold truncate mt-1">

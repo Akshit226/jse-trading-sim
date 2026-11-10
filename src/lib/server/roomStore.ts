@@ -304,8 +304,12 @@ export function serverTriggerNews(code: string, news: NewsEvent): RoomState {
   const timestampedNews = { ...news, timestamp: Date.now() };
 
   const updatedAssets = { ...room.assets };
-  for (const assetId of Object.keys(updatedAssets) as AssetId[]) {
-    updatedAssets[assetId] = applyNewsToAsset(updatedAssets[assetId], timestampedNews);
+  // If marketDriven is true, do NOT artificially jump stock prices;
+  // let students and bots trade on the news to discover the price!
+  if (!news.marketDriven) {
+    for (const assetId of Object.keys(updatedAssets) as AssetId[]) {
+      updatedAssets[assetId] = applyNewsToAsset(updatedAssets[assetId], timestampedNews);
+    }
   }
 
   const recalculatedPlayers: Record<string, PlayerPortfolio> = {};

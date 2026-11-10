@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { AssetId, NewsEvent, NewsSentiment } from "@/types/trading";
 import { PRESET_NEWS_SCENARIOS } from "@/lib/engine/newsScenarios";
-import { Radio, Send, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Radio, Send, ArrowUpRight, ArrowDownRight, CheckSquare, Square, HelpCircle } from "lucide-react";
 
 interface NewsTriggerModalProps {
   currentRound: number;
@@ -19,9 +19,15 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
   const [customAsset, setCustomAsset] = useState<AssetId | "ALL" | "IT" | "AUTO" | "BANKING" | "FMCG">("RELIANCE");
   const [customImpact, setCustomImpact] = useState<number>(15);
   const [customSentiment, setCustomSentiment] = useState<NewsSentiment>("strongly_bullish");
+  
+  // Default to market-driven so prices don't artificially jump; students decide through order flow!
+  const [marketDriven, setMarketDriven] = useState<boolean>(true);
 
   const handleTriggerPreset = (preset: NewsEvent) => {
-    onTriggerNews(preset);
+    onTriggerNews({
+      ...preset,
+      marketDriven,
+    });
   };
 
   const handleTriggerCustom = () => {
@@ -36,6 +42,7 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
       sentiment: customSentiment,
       priceImpact: customImpact / 100,
       soundCue: customImpact < 0 ? "crash_alert" : "bullish_alert",
+      marketDriven,
       timestamp: Date.now(),
     };
 
@@ -46,11 +53,37 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
 
   return (
     <div className="card-surface p-5 space-y-5">
-      <div className="flex items-center gap-2 pb-3 border-b border-borderSubtle">
-        <Radio className="w-4 h-4 text-accent" />
-        <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
-          News Catalyst & Shock Dispatcher
-        </h3>
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-borderSubtle">
+        <div className="flex items-center gap-2">
+          <Radio className="w-4 h-4 text-accent" />
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+            News Catalyst & Wire Dispatcher
+          </h3>
+        </div>
+
+        {/* Market-Driven Mode Toggle */}
+        <button
+          type="button"
+          onClick={() => setMarketDriven(!marketDriven)}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-ui border text-xs font-mono transition-all motion-btn-press ${
+            marketDriven
+              ? "bg-accent-subtle/40 border-accent text-accent-light font-bold"
+              : "bg-surface-subtle border-borderSubtle text-neutralMuted hover:text-white"
+          }`}
+          title="Toggle whether prices move by student trading decisions or instant shock"
+        >
+          {marketDriven ? <CheckSquare className="w-3.5 h-3.5 text-accent" /> : <Square className="w-3.5 h-3.5" />}
+          <span>{marketDriven ? "Market-Driven (Students Decide)" : "Forced Instant Price Jump"}</span>
+        </button>
+      </div>
+
+      <div className="text-[11px] font-mono text-neutralMuted flex items-center gap-1.5 bg-surface-subtle/60 p-2.5 rounded-ui border border-borderSubtle">
+        <HelpCircle className="w-3.5 h-3.5 text-accent shrink-0" />
+        <span>
+          {marketDriven
+            ? "Market-Driven Active: News is broadcasted to the projector & student phones without price spoilers. Asset prices will move naturally based on student & bot trading orders."
+            : "Forced Instant Mode: The stock price will immediately jump upon clicking broadcast."}
+        </span>
       </div>
 
       {/* Preset Curated Scenarios */}
@@ -85,7 +118,7 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
                         <ArrowDownRight className="w-3 h-3 mr-0.5" />
                       ) : null}
                       {preset.priceImpact >= 0 ? "+" : ""}
-                      {(preset.priceImpact * 100).toFixed(0)}%
+                      {(preset.priceImpact * 100).toFixed(0)}% Reference
                     </span>
                   </div>
 
@@ -103,7 +136,7 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
                   className="mt-3 w-full min-h-touch py-1.5 px-3 bg-surface hover:bg-surface-elevated border border-borderSubtle hover:border-borderStrong rounded-ui text-xs font-bold text-white motion-btn-press flex items-center justify-center gap-1.5"
                 >
                   <Send className="w-3 h-3 text-accent" />
-                  <span>Broadcast Shock</span>
+                  <span>{marketDriven ? "Broadcast News Wire" : "Broadcast Shock"}</span>
                 </button>
               </div>
             );
@@ -161,7 +194,7 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
           disabled={!customTitle.trim()}
           className="w-full min-h-touch py-2 bg-accent hover:bg-accent-hover text-white font-bold text-xs uppercase tracking-wider rounded-ui motion-btn-press disabled:opacity-30 disabled:pointer-events-none"
         >
-          Inject Custom Market Shock
+          {marketDriven ? "Broadcast Custom News Wire" : "Inject Custom Market Shock"}
         </button>
       </div>
     </div>

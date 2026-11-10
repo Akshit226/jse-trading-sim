@@ -68,6 +68,7 @@ export interface NewsEvent {
     rate?: number;
     urgency?: "emergency" | "bullish" | "authoritative";
   };
+  marketDriven?: boolean; // When true, price does not jump artificially; students & bots drive the price through trading!
   timestamp: number;
   round: number;
 }
