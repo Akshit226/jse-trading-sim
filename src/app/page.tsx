@@ -22,6 +22,7 @@ import {
   LogOut,
   Mail,
   UserCheck,
+  GraduationCap,
 } from "lucide-react";
 
 interface StockQuote {
@@ -218,6 +219,7 @@ export default function HomePage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [studentEmailInput, setStudentEmailInput] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [showEmailFallback, setShowEmailFallback] = useState(false);
   const [authenticatedUser, setAuthenticatedUser] = useState<{
     name: string;
@@ -265,39 +267,110 @@ export default function HomePage() {
     setShowSplash(false);
   };
 
+  /**
+   * Validates official Jain University email format: firstname.25002527@jainuniversity.ac.in
+   */
+  const parseJainEmail = (rawEmail: string): {
+    valid: boolean;
+    error?: string;
+    derivedName?: string;
+    rollNo?: string;
+    cleanEmail?: string;
+  } => {
+    const email = rawEmail.trim().toLowerCase();
+    if (!email) {
+      return { valid: false, error: "Please enter your Jain University email address." };
+    }
+
+    const parts = email.split("@");
+    if (parts.length !== 2) {
+      return { valid: false, error: "Please enter a valid email address." };
+    }
+
+    const domain = parts[1];
+    if (domain !== "jainuniversity.ac.in") {
+      return {
+        valid: false,
+        error: "Access restricted: Email domain must be @jainuniversity.ac.in",
+      };
+    }
+
+    const localPart = parts[0]; // e.g. "firstname.25002527" or "john.smith.25002527"
+    const segments = localPart.split(".");
+    if (segments.length < 2) {
+      return {
+        valid: false,
+        error: "Expected format: firstname.rollno@jainuniversity.ac.in (e.g. firstname.25002527@jainuniversity.ac.in)",
+      };
+    }
+
+    const rollNo = segments[segments.length - 1];
+    const nameSegments = segments.slice(0, segments.length - 1);
+    const formattedName = nameSegments
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(" ");
+
+    const derivedName = `${formattedName} (${rollNo})`;
+
+    return {
+      valid: true,
+      derivedName,
+      rollNo,
+      cleanEmail: email,
+    };
+  };
+
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setGoogleError(null);
     try {
       const user = await loginWithGoogle();
-      setAuthenticatedUser(user);
-      localStorage.setItem("trading_sim_player_name", user.name);
+      const emailLower = user.email.toLowerCase();
+
+      // Check if domain is @jainuniversity.ac.in
+      if (!emailLower.endsWith("@jainuniversity.ac.in")) {
+        setGoogleError(
+          "Access Restricted: Please sign in using your official @jainuniversity.ac.in student account. Or enter your Jain email directly below."
+        );
+        return;
+      }
+
+      const parsed = parseJainEmail(user.email);
+      const finalName = parsed.valid && parsed.derivedName ? parsed.derivedName : user.name;
+      const uid = parsed.rollNo ? `std_${parsed.rollNo}` : user.uid;
+
+      setAuthenticatedUser({
+        name: finalName,
+        email: user.email,
+        uid,
+        photoURL: user.photoURL,
+      });
+
+      localStorage.setItem("trading_sim_player_name", finalName);
       localStorage.setItem("trading_sim_player_email", user.email);
-      localStorage.setItem("trading_sim_player_id", user.uid);
+      localStorage.setItem("trading_sim_player_id", uid);
       if (user.photoURL) {
         localStorage.setItem("trading_sim_player_photo", user.photoURL);
       }
 
       const trimmedCode = (roomCode || "WALLST").trim().toUpperCase();
       const query = new URLSearchParams({
-        name: user.name,
+        name: finalName,
         email: user.email,
-        uid: user.uid,
+        uid,
       });
       if (user.photoURL) query.set("photo", user.photoURL);
       router.push(`/play/${trimmedCode}?${query.toString()}`);
     } catch (err: any) {
       console.error("Google Auth error:", err);
       if (err.code === "auth/popup-closed-by-user") {
-        setGoogleError("Sign-in popup was closed. Please try again.");
+        setGoogleError("Sign-in popup was closed. Please try again or enter your Jain email directly below.");
       } else if (err.code === "auth/unauthorized-domain") {
         setGoogleError(
-          "Vercel domain (jse-trading-sim.vercel.app) needs to be authorized in Firebase Console. You can enter your email below in the meantime."
+          "Direct Jain University student email login available below."
         );
-        setShowEmailFallback(true);
       } else {
         setGoogleError(err.message || "Google sign-in error.");
-        setShowEmailFallback(true);
       }
     } finally {
       setGoogleLoading(false);
@@ -306,24 +379,23 @@ export default function HomePage() {
 
   const handleEmailIdentitySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!studentEmailInput.trim() || !studentEmailInput.includes("@")) return;
+    setEmailError(null);
 
-    // Automatically derive verified student name from college email ID!
-    const emailClean = studentEmailInput.trim().toLowerCase();
-    const localPart = emailClean.split("@")[0];
-    const derivedName = localPart
-      .replace(/[._\-]/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    const parsed = parseJainEmail(studentEmailInput);
+    if (!parsed.valid || !parsed.derivedName || !parsed.cleanEmail) {
+      setEmailError(parsed.error || "Please use format: firstname.25002527@jainuniversity.ac.in");
+      return;
+    }
 
-    const uid = `std_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    localStorage.setItem("trading_sim_player_name", derivedName);
-    localStorage.setItem("trading_sim_player_email", emailClean);
+    const uid = parsed.rollNo ? `std_${parsed.rollNo}` : `std_${Date.now()}`;
+    localStorage.setItem("trading_sim_player_name", parsed.derivedName);
+    localStorage.setItem("trading_sim_player_email", parsed.cleanEmail);
     localStorage.setItem("trading_sim_player_id", uid);
 
     const trimmedCode = (roomCode || "WALLST").trim().toUpperCase();
     const query = new URLSearchParams({
-      name: derivedName,
-      email: emailClean,
+      name: parsed.derivedName,
+      email: parsed.cleanEmail,
       uid,
     });
     router.push(`/play/${trimmedCode}?${query.toString()}`);
@@ -484,14 +556,14 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* VIEW B1: STUDENT GOOGLE AUTH LOGIN */}
+              {/* VIEW B1: STUDENT JAIN UNIVERSITY PORTAL */}
               {!showFacultyGate ? (
-                <div className="space-y-5">
-                  {/* Classroom PIN */}
+                <div className="space-y-4">
+                  {/* Classroom PIN / Room Code */}
                   <div>
                     <label className="block text-xs font-bold text-neutralMuted uppercase tracking-wider mb-1.5 flex justify-between">
-                      <span>Classroom PIN</span>
-                      <span className="text-[10px] text-neutralMuted lowercase font-mono">default WALLST</span>
+                      <span>Classroom Room Code</span>
+                      <span className="text-[10px] text-accent font-mono font-bold">DEFAULT: WALLST</span>
                     </label>
                     <input
                       type="text"
@@ -504,7 +576,7 @@ export default function HomePage() {
                   </div>
 
                   {authenticatedUser ? (
-                    /* ALREADY AUTHENTICATED VIA GOOGLE */
+                    /* ALREADY AUTHENTICATED */
                     <div className="p-4 bg-surface-subtle border border-accent/40 rounded-ui space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 min-w-0">
@@ -516,7 +588,7 @@ export default function HomePage() {
                             />
                           ) : (
                             <div className="w-9 h-9 rounded-full bg-accent/20 border border-accent text-accent font-bold flex items-center justify-center shrink-0">
-                              {authenticatedUser.name[0]}
+                              <GraduationCap className="w-5 h-5 text-accent" />
                             </div>
                           )}
                           <div className="min-w-0">
@@ -534,7 +606,7 @@ export default function HomePage() {
                           type="button"
                           onClick={handleSwitchAccount}
                           className="text-[11px] text-neutralMuted hover:text-loss flex items-center gap-1 ml-2 transition-colors shrink-0"
-                          title="Switch Google Account"
+                          title="Switch Student Account"
                         >
                           <LogOut className="w-3.5 h-3.5" />
                           <span className="hidden sm:inline">Switch</span>
@@ -551,57 +623,87 @@ export default function HomePage() {
                       </button>
                     </div>
                   ) : (
-                    /* GOOGLE SIGN IN BUTTON */
-                    <div className="space-y-3">
+                    /* JAIN UNIVERSITY EMAIL ENTRY FORM */
+                    <div className="space-y-4">
+                      <form onSubmit={handleEmailIdentitySubmit} className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-bold text-neutralMuted uppercase tracking-wider mb-1.5 flex justify-between items-center">
+                            <span className="flex items-center gap-1.5">
+                              <GraduationCap className="w-4 h-4 text-accent" />
+                              <span>Jain University Student Email ID</span>
+                            </span>
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent/15 text-accent border border-accent/30 font-bold">
+                              @jainuniversity.ac.in
+                            </span>
+                          </label>
+
+                          <div className="relative">
+                            <input
+                              type="email"
+                              required
+                              placeholder="firstname.25002527@jainuniversity.ac.in"
+                              value={studentEmailInput}
+                              onChange={(e) => {
+                                setStudentEmailInput(e.target.value);
+                                if (emailError) setEmailError(null);
+                              }}
+                              className={`w-full min-h-touch bg-surface-subtle border ${
+                                emailError ? "border-loss text-loss" : "border-borderSubtle text-white"
+                              } focus:border-borderFocus rounded-ui px-3.5 py-2.5 text-sm font-mono placeholder:text-neutralMuted/50 focus:outline-none transition-colors`}
+                            />
+                          </div>
+
+                          {emailError && (
+                            <div className="text-xs text-loss mt-1.5 flex items-center gap-1 font-sans">
+                              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                              <span>{emailError}</span>
+                            </div>
+                          )}
+
+                          <p className="text-[11px] text-neutralMuted mt-1.5 font-mono">
+                            Format: <span className="text-white font-bold">firstname.25002527@jainuniversity.ac.in</span>
+                          </p>
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="w-full min-h-touch py-3.5 bg-accent hover:bg-accent-hover text-white font-bold text-sm rounded-ui shadow-ui motion-btn-press flex items-center justify-center gap-2 transition-all cursor-pointer"
+                        >
+                          <GraduationCap className="w-4 h-4" />
+                          <span>Enter Trading Floor as Jain Student</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </form>
+
+                      {/* Divider */}
+                      <div className="relative flex py-1 items-center">
+                        <div className="flex-grow border-t border-borderSubtle"></div>
+                        <span className="flex-shrink mx-3 text-[10px] font-mono text-neutralMuted uppercase">
+                          or sign in with university google workspace
+                        </span>
+                        <div className="flex-grow border-t border-borderSubtle"></div>
+                      </div>
+
+                      {/* GOOGLE SIGN IN BUTTON */}
                       <button
                         type="button"
                         onClick={handleGoogleSignIn}
                         disabled={googleLoading}
-                        className="w-full min-h-touch py-3.5 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-900 font-bold text-sm rounded-ui shadow-ui motion-btn-press flex items-center justify-center gap-3 transition-all disabled:opacity-50 cursor-pointer"
+                        className="w-full min-h-touch py-3 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-900 font-bold text-xs rounded-ui shadow-ui motion-btn-press flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 cursor-pointer"
                       >
-                        <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                         </svg>
-                        <span>{googleLoading ? "Connecting to Google..." : "Sign in with Google to Enter Floor"}</span>
+                        <span>{googleLoading ? "Connecting to Google..." : "Sign in with Jain University Google Account"}</span>
                       </button>
 
-                      <div className="flex items-center gap-1.5 text-[11px] text-neutralMuted justify-center font-mono">
-                        <UserCheck className="w-3.5 h-3.5 text-gain" />
-                        <span>Trader identity is verified automatically from your Google account.</span>
-                      </div>
-
                       {googleError && (
-                        <div className="p-3 bg-loss-subtle border border-loss-border rounded-ui text-xs text-loss space-y-2">
-                          <div className="flex items-center gap-1.5 font-bold">
-                            <AlertTriangle className="w-4 h-4 shrink-0" />
-                            <span>{googleError}</span>
-                          </div>
-                          {showEmailFallback && (
-                            <form onSubmit={handleEmailIdentitySubmit} className="pt-2 border-t border-loss-border/40 space-y-2">
-                              <label className="block text-[11px] text-slate-300">
-                                Enter College / University Email:
-                              </label>
-                              <div className="flex gap-2">
-                                <input
-                                  type="email"
-                                  required
-                                  placeholder="student.name@jainuniversity.ac.in"
-                                  value={studentEmailInput}
-                                  onChange={(e) => setStudentEmailInput(e.target.value)}
-                                  className="flex-1 bg-surface border border-borderSubtle rounded px-2.5 py-1.5 text-xs text-white placeholder-slate-500 font-mono focus:outline-none"
-                                />
-                                <button
-                                  type="submit"
-                                  className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded"
-                                >
-                                  Join
-                                </button>
-                              </div>
-                            </form>
-                          )}
+                        <div className="p-3 bg-loss-subtle border border-loss-border rounded-ui text-xs text-loss flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                          <span>{googleError}</span>
                         </div>
                       )}
                     </div>
