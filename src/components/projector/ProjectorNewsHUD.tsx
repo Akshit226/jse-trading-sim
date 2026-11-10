@@ -6,7 +6,6 @@ import { getCompanyFullName, getCompanyIndustry, getCompanySubSector, formatINR 
 import { PRESET_NEWS_SCENARIOS } from "@/lib/engine/newsScenarios";
 import { PriceChart } from "@/components/trading/PriceChart";
 import { sounds } from "@/lib/audio";
-import { newsSpeaker } from "@/lib/voice/newsSpeaker";
 import {
   Radio,
   Zap,
@@ -15,7 +14,6 @@ import {
   LineChart,
   Newspaper,
   ShieldAlert,
-  Volume2,
   Sparkles,
   Layers,
   HelpCircle,
@@ -55,8 +53,6 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
       } else {
         sounds.playBreakingNews();
       }
-
-      newsSpeaker.speak(activeNews);
     }
   }, [currentNews]);
 
@@ -89,12 +85,6 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
   }, [selectedNewsId, currentNews, defaultRoundNews, newsHistory, roundScenarios]);
 
   const isLiveShock = currentNews && currentNews.id === activeNews.id;
-
-  const handleReadAloud = () => {
-    if (activeNews) {
-      newsSpeaker.speak(activeNews);
-    }
-  };
 
   return (
     <div className="card-surface p-5 sm:p-6 space-y-5 border border-borderSubtle relative flex flex-col justify-between min-h-[480px]">
@@ -217,15 +207,6 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
                   <HelpCircle className="w-3 h-3 text-accent" />
                   <span>Floor Task: Analyze & Decide</span>
                 </span>
-
-                <button
-                  type="button"
-                  onClick={handleReadAloud}
-                  className="p-1.5 rounded bg-surface-subtle hover:bg-surface border border-borderSubtle text-neutralMuted hover:text-white transition-colors"
-                  title="Read News Aloud"
-                >
-                  <Volume2 className="w-4 h-4 text-accent" />
-                </button>
               </div>
             </div>
 

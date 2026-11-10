@@ -310,7 +310,7 @@ function HostDashboardContent() {
               />
               {pinError && (
                 <div className="text-xs text-loss font-bold text-center mt-1.5">
-                  Invalid PIN. Default facilitator PIN is 2026.
+                  Invalid PIN. Access restricted to authorized faculty.
                 </div>
               )}
             </div>

@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { NewsEvent } from "@/types/trading";
 import { getCompanyFullName, getCompanyIndustry } from "@/lib/constants";
 import { sounds } from "@/lib/audio";
-import { newsSpeaker } from "@/lib/voice/newsSpeaker";
 import { X, ChevronRight, Zap, HelpCircle } from "lucide-react";
 
 interface BreakingNewsBannerProps {
@@ -14,16 +13,8 @@ interface BreakingNewsBannerProps {
 
 export const BreakingNewsBanner: React.FC<BreakingNewsBannerProps> = ({ news, onDismiss }) => {
   const lastNewsIdRef = useRef<string | null>(null);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    const unsub = newsSpeaker.onSpeakingChange((speaking) => {
-      setIsSpeaking(speaking);
-    });
-    return () => unsub();
-  }, []);
 
   useEffect(() => {
     if (news && news.id !== lastNewsIdRef.current) {
@@ -37,8 +28,6 @@ export const BreakingNewsBanner: React.FC<BreakingNewsBannerProps> = ({ news, on
       } else {
         sounds.playBreakingNews();
       }
-
-      newsSpeaker.speak(news);
     }
   }, [news]);
 

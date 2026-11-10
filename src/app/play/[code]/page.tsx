@@ -34,7 +34,6 @@ import { PortfolioCard } from "@/components/trading/PortfolioCard";
 import { SentimentMeter } from "@/components/trading/SentimentMeter";
 import { BreakingNewsBanner } from "@/components/shared/BreakingNewsBanner";
 import { sounds } from "@/lib/audio";
-import { newsSpeaker } from "@/lib/voice/newsSpeaker";
 import {
   TrendingUp,
   TrendingDown,
@@ -210,7 +209,6 @@ function PlayRoomContent() {
     const next = !soundEnabled;
     setSoundEnabled(next);
     sounds.setEnabled(next);
-    newsSpeaker.setEnabled(next);
   };
 
   // Get current player portfolio

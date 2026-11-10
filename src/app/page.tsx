@@ -650,7 +650,7 @@ export default function HomePage() {
                       </button>
 
                       <p className="text-[11px] text-center text-neutralMuted font-mono">
-                        Default classroom PIN: <span className="font-bold text-white">2026</span>
+                        Faculty Access Protected • Authorized PIN Required
                       </p>
                     </form>
                   ) : (

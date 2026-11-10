@@ -29,7 +29,6 @@ import {
   Clock,
 } from "lucide-react";
 import { sounds } from "@/lib/audio";
-import { newsSpeaker } from "@/lib/voice/newsSpeaker";
 
 export default function ProjectorDisplayPage() {
   const params = useParams();
@@ -108,7 +107,6 @@ export default function ProjectorDisplayPage() {
     const next = !soundEnabled;
     setSoundEnabled(next);
     sounds.setEnabled(next);
-    newsSpeaker.setEnabled(next);
   };
 
   const joinUrl = `${originUrl}/play/${roomCode}`;
