@@ -1,5 +1,6 @@
 import { AssetId, RoomState, StudentDesk, TradeOrder } from "@/types/trading";
 import { getRoomState, submitOrder } from "./syncService";
+import { PRESET_NEWS_SCENARIOS } from "@/lib/engine/newsScenarios";
 
 let simulatorInterval: NodeJS.Timeout | null = null;
 
@@ -30,9 +31,12 @@ export function startBotSimulation(roomCode: string, tickMs: number = 2200): voi
       let targetAsset: AssetId = assetKeys[Math.floor(Math.random() * assetKeys.length)];
       let side: "BUY" | "SELL" = Math.random() > 0.45 ? "BUY" : "SELL";
 
-      // If there's active news, bots bias towards that news sentiment!
-      if (room.currentNews) {
-        const news = room.currentNews;
+      // If there's active news or a round catalyst, bots bias towards that sentiment!
+      const activeNews =
+        room.currentNews || PRESET_NEWS_SCENARIOS.find((s) => s.round === room.currentRound);
+
+      if (activeNews) {
+        const news = activeNews;
         if (news.affectedAsset === "ALL") {
           targetAsset = assetKeys[Math.floor(Math.random() * assetKeys.length)];
         } else if (news.affectedCompanies && news.affectedCompanies.length > 0) {
@@ -47,11 +51,11 @@ export function startBotSimulation(roomCode: string, tickMs: number = 2200): voi
         }
 
         if (news.sentiment.includes("bullish")) {
-          // 80% chance to buy on bullish news
-          side = Math.random() < 0.8 ? "BUY" : "SELL";
+          // 75% chance to buy on bullish news
+          side = Math.random() < 0.75 ? "BUY" : "SELL";
         } else if (news.sentiment.includes("bearish")) {
-          // 80% chance to sell on bearish news
-          side = Math.random() < 0.8 ? "SELL" : "BUY";
+          // 75% chance to sell on bearish news
+          side = Math.random() < 0.75 ? "SELL" : "BUY";
         }
       }
 

@@ -57,7 +57,8 @@ export const TradePad: React.FC<TradePadProps> = ({
       setPrevPrice(currentPrice);
     }
   }, [currentPrice, prevPrice]);
-  const estimatedTotal = Number((quantity * currentPrice).toFixed(2));
+  const cleanQty = Math.max(1, Math.floor(Number(quantity) || 1));
+  const estimatedTotal = Number((cleanQty * currentPrice).toFixed(2));
   const maxBuyAffordable = currentPrice > 0 ? Math.floor(player.cash / currentPrice) : 0;
   const isMarketActive = room.status === "ACTIVE";
 
@@ -65,11 +66,11 @@ export const TradePad: React.FC<TradePadProps> = ({
   let validationError: string | null = null;
   if (!isMarketActive) {
     validationError = room.status === "LOBBY" ? "Market opens when round starts" : "Trading paused by instructor";
-  } else if (quantity <= 0) {
-    validationError = "Enter a valid share quantity";
+  } else if (!Number.isInteger(cleanQty) || cleanQty <= 0) {
+    validationError = "Enter a valid positive whole number of shares";
   } else if (side === "BUY" && estimatedTotal > player.cash) {
     validationError = `Insufficient cash (Requires ${formatINR(estimatedTotal)})`;
-  } else if (side === "SELL" && quantity > holding) {
+  } else if (side === "SELL" && cleanQty > holding) {
     validationError = `Insufficient holdings (You own ${holding} shares)`;
   }
 
@@ -78,30 +79,35 @@ export const TradePad: React.FC<TradePadProps> = ({
     setErrorMessage(null);
     setLoading(true);
 
-    const order: TradeOrder = {
-      id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      playerId: player.id,
-      playerName: player.name,
-      desk: player.desk || "retail_momentum",
-      assetId: selectedAssetId,
-      side,
-      quantity,
-      price: currentPrice,
-      timestamp: Date.now(),
-      total: estimatedTotal,
-    };
+    try {
+      const order: TradeOrder = {
+        id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        playerId: player.id,
+        playerName: player.name,
+        desk: player.desk || "retail_momentum",
+        assetId: selectedAssetId,
+        side,
+        quantity: cleanQty,
+        price: currentPrice,
+        timestamp: Date.now(),
+        total: estimatedTotal,
+      };
 
-    // Instant audio cue for 0ms physical feedback
-    sounds.playTradeSuccess();
+      // Instant audio cue for 0ms physical feedback
+      sounds.playTradeSuccess();
 
-    const res = await onTrade(order);
-    setLoading(false);
+      const res = await onTrade(order);
 
-    if (res.success) {
-      setIsExecutedPulse(true);
-      setTimeout(() => setIsExecutedPulse(false), 500);
-    } else {
-      setErrorMessage(res.error || "Trade execution failed");
+      if (res.success) {
+        setIsExecutedPulse(true);
+        setTimeout(() => setIsExecutedPulse(false), 500);
+      } else {
+        setErrorMessage(res.error || "Trade execution failed");
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Connection timeout. Please retry trade.");
+    } finally {
+      setLoading(false);
     }
   };
 

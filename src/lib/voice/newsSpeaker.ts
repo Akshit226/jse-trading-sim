@@ -124,6 +124,13 @@ class NewsSpeakerService {
     setTimeout(() => {
       try {
         window.speechSynthesis.speak(utterance);
+
+        // Safety watchdog: Chrome/Windows SpeechSynthesis occasionally hangs without firing onend
+        setTimeout(() => {
+          if (this.currentUtterance === utterance) {
+            this.stop();
+          }
+        }, 18000);
       } catch (err) {
         console.warn("SpeechSynthesis error:", err);
       }
