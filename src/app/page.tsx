@@ -234,6 +234,7 @@ export default function HomePage() {
   // Faculty Gate
   const [showFacultyGate, setShowFacultyGate] = useState(false);
   const [facultyPin, setFacultyPin] = useState("");
+  const [customPlayerName, setCustomPlayerName] = useState("");
   const [pinError, setPinError] = useState(false);
   const [isFacultyUnlocked, setIsFacultyUnlocked] = useState(false);
 
@@ -424,13 +425,42 @@ export default function HomePage() {
 
   const handleVerifyFacultyPin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (facultyPin.trim() === DEFAULT_TEACHER_PIN) {
+    if (facultyPin.trim() === "8797" || facultyPin.trim() === DEFAULT_TEACHER_PIN) {
       sessionStorage.setItem("jse_teacher_authorized", "true");
       setIsFacultyUnlocked(true);
       setPinError(false);
     } else {
       setPinError(true);
     }
+  };
+
+  const handleJoinAsCustomPlayer = (overrideName?: string) => {
+    const nameToUse = (overrideName || customPlayerName).trim() || "Faculty Player";
+    const uid = `player_custom_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const email = `faculty.${Date.now()}@jainuniversity.ac.in`;
+
+    localStorage.setItem("trading_sim_player_name", nameToUse);
+    localStorage.setItem("trading_sim_player_email", email);
+    localStorage.setItem("trading_sim_player_id", uid);
+
+    const trimmedCode = (roomCode || "WALLST").trim().toUpperCase();
+    const query = new URLSearchParams({
+      name: nameToUse,
+      email,
+      uid,
+    });
+    router.push(`/play/${trimmedCode}?${query.toString()}`);
+  };
+
+  const handleDirectFacultyPlayerLogin = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (facultyPin.trim() !== "8797" && facultyPin.trim() !== DEFAULT_TEACHER_PIN) {
+      setPinError(true);
+      return;
+    }
+    setPinError(false);
+    sessionStorage.setItem("jse_teacher_authorized", "true");
+    handleJoinAsCustomPlayer(customPlayerName);
   };
 
   const handleLockFaculty = () => {
@@ -706,6 +736,18 @@ export default function HomePage() {
                           <span>{googleError}</span>
                         </div>
                       )}
+
+                      {/* Quick link for faculty / custom player */}
+                      <div className="pt-2 text-center border-t border-borderSubtle">
+                        <button
+                          type="button"
+                          onClick={() => setShowFacultyGate(true)}
+                          className="text-xs text-neutralMuted hover:text-accent font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-accent" />
+                          <span>Faculty or Guest with Password? Login with any custom name →</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -713,21 +755,26 @@ export default function HomePage() {
                 /* VIEW B2: FACULTY AUTH GATEWAY */
                 <div className="space-y-4">
                   {!isFacultyUnlocked ? (
-                    <form onSubmit={handleVerifyFacultyPin} className="space-y-4">
+                    <div className="space-y-4">
                       <div className="p-4 bg-surface-subtle border border-borderSubtle rounded-ui text-center space-y-1">
-                        <Lock className="w-5 h-5 text-neutralMuted mx-auto mb-1" />
-                        <div className="text-sm font-bold text-white">Faculty Authorization</div>
+                        <Lock className="w-5 h-5 text-accent mx-auto mb-1" />
+                        <div className="text-sm font-bold text-white">Faculty & VIP Player Portal</div>
                         <p className="text-xs text-neutralMuted">
-                          Enter facilitator PIN to manage rounds and open projector.
+                          Enter password <span className="text-accent font-mono font-bold">8797</span> to login as a player with any name or unlock facilitator controls.
                         </p>
                       </div>
 
-                      <div className="max-w-xs mx-auto">
+                      {/* Password input */}
+                      <div>
+                        <label className="block text-xs font-bold text-neutralMuted uppercase tracking-wider mb-1.5 flex justify-between">
+                          <span>Faculty / VIP Password</span>
+                          <span className="text-[10px] text-accent font-mono font-bold">PIN: 8797</span>
+                        </label>
                         <input
                           type="password"
                           autoFocus
                           required
-                          placeholder="••••"
+                          placeholder="Enter PIN (8797)"
                           value={facultyPin}
                           onChange={(e) => {
                             setFacultyPin(e.target.value);
@@ -735,32 +782,72 @@ export default function HomePage() {
                           }}
                           className={`w-full min-h-touch bg-surface-subtle border ${
                             pinError ? "border-loss text-loss" : "border-borderSubtle text-white"
-                          } focus:border-borderFocus rounded-ui px-4 py-2 text-center text-lg font-mono tracking-widest font-bold focus:outline-none`}
+                          } focus:border-borderFocus rounded-ui px-4 py-2.5 text-center text-lg font-mono tracking-widest font-bold focus:outline-none transition-colors`}
                         />
                         {pinError && (
-                          <div className="text-xs text-loss text-center font-bold mt-1.5">
-                            Invalid PIN. Access restricted to faculty.
+                          <div className="text-xs text-loss text-center font-bold mt-1.5 flex items-center justify-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            <span>Invalid Password. Please enter 8797.</span>
                           </div>
                         )}
                       </div>
 
-                      <button
-                        type="submit"
-                        className="w-full min-h-touch py-2.5 bg-accent hover:bg-accent-hover text-white font-bold text-xs uppercase tracking-wider rounded-ui motion-btn-press"
-                      >
-                        Unlock Facilitator Console
-                      </button>
+                      {/* Custom Player Name Input */}
+                      <div className="p-3.5 bg-accent/10 border border-accent/30 rounded-ui space-y-2">
+                        <label className="block text-xs font-bold text-white uppercase tracking-wider flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <UserCheck className="w-4 h-4 text-accent" />
+                            <span>Play as Custom Trader</span>
+                          </span>
+                          <span className="text-[10px] text-gain font-mono font-bold">BYPASSES EMAIL</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Type any player name (e.g. Prof. Sharma, Akshit, VIP)"
+                          value={customPlayerName}
+                          onChange={(e) => setCustomPlayerName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleDirectFacultyPlayerLogin();
+                            }
+                          }}
+                          className="w-full min-h-touch bg-surface border border-borderSubtle focus:border-accent rounded-ui px-3.5 py-2 text-sm text-white placeholder:text-neutralMuted/60 focus:outline-none transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleDirectFacultyPlayerLogin()}
+                          className="w-full min-h-touch py-2.5 bg-accent hover:bg-accent-hover text-white font-bold text-xs uppercase tracking-wider rounded-ui shadow-ui motion-btn-press flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <span>Enter Floor as {customPlayerName.trim() || "Custom Trader"}</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
 
-                      <p className="text-[11px] text-center text-neutralMuted font-mono">
-                        Faculty Access Protected • Authorized PIN Required
-                      </p>
-                    </form>
+                      {/* Divider */}
+                      <div className="relative flex py-1 items-center">
+                        <div className="flex-grow border-t border-borderSubtle"></div>
+                        <span className="flex-shrink mx-3 text-[10px] font-mono text-neutralMuted uppercase">
+                          or facilitator controls
+                        </span>
+                        <div className="flex-grow border-t border-borderSubtle"></div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleVerifyFacultyPin}
+                        className="w-full min-h-touch py-2.5 bg-surface-subtle hover:bg-surface border border-borderSubtle hover:border-borderStrong text-white font-bold text-xs uppercase tracking-wider rounded-ui motion-btn-press flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-accent" />
+                        <span>Unlock Facilitator Command Center</span>
+                      </button>
+                    </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <div className="p-3 bg-gain-subtle border border-gain-border rounded-ui flex items-center justify-between text-xs text-gain font-bold">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>Faculty Verified • Room {roomCode}</span>
+                          <span>Password Verified • Room {roomCode}</span>
                         </div>
                         <button
                           type="button"
@@ -771,6 +858,39 @@ export default function HomePage() {
                         </button>
                       </div>
 
+                      {/* Play with Custom Name Card */}
+                      <div className="p-4 bg-accent/10 border border-accent/40 rounded-ui space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                            <UserCheck className="w-4 h-4 text-accent" />
+                            <span>Play Game as Any Custom Name</span>
+                          </div>
+                          <span className="text-[10px] font-mono text-gain font-bold">VIP ACCESS</span>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Type any player name (e.g. Prof. Sharma, Akshit, VIP)"
+                          value={customPlayerName}
+                          onChange={(e) => setCustomPlayerName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleJoinAsCustomPlayer();
+                            }
+                          }}
+                          className="w-full min-h-touch bg-surface border border-borderSubtle focus:border-accent rounded-ui px-3.5 py-2 text-sm text-white placeholder:text-neutralMuted/60 focus:outline-none transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleJoinAsCustomPlayer()}
+                          className="w-full min-h-touch py-2.5 bg-accent hover:bg-accent-hover text-white font-bold text-xs uppercase tracking-wider rounded-ui shadow-ui motion-btn-press flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <span>Enter Floor as {customPlayerName.trim() || "Custom Trader"}</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Command Center & Projector links */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                         <button
                           type="button"
