@@ -1,14 +1,14 @@
 export type AssetId =
-  | "MPHASIS"
-  | "COFORGE"
-  | "OFSS"
-  | "LTTS"
-  | "TATAELXSI"
-  | "COLPAL"
-  | "PGHH"
-  | "RADICO"
-  | "UBL"
-  | "GILLETTE";
+  | "RELIANCE"
+  | "TATAMOTORS"
+  | "TCS"
+  | "HDFCBANK"
+  | "INFY"
+  | "ITC"
+  | "ZOMATO"
+  | "ADANIENT"
+  | "SBIN"
+  | "MARUTI";
 
 export type StudentDesk =
   | "tech_analyst"
@@ -23,10 +23,19 @@ export type NewsSentiment =
   | "bearish"
   | "strongly_bearish";
 
+export type AssetCategory =
+  | "ENERGY"
+  | "AUTO"
+  | "IT"
+  | "BANKING"
+  | "FMCG"
+  | "CONSUMER_TECH"
+  | "INFRA";
+
 export interface Asset {
   id: AssetId;
   name: string;
-  category: "IT" | "FMCG";
+  category: AssetCategory;
   industry?: string;
   description: string;
   currentPrice: number;
@@ -44,7 +53,9 @@ export interface NewsEvent {
   id: string;
   title: string;
   description: string;
-  affectedAsset: AssetId | "ALL" | "IT" | "FMCG";
+  affectedAsset: AssetId | "ALL" | AssetCategory;
+  affectedSector?: string;
+  affectedCompanies?: AssetId[];
   sentiment: NewsSentiment;
   priceImpact: number; // percentage shift e.g. +0.20 (+20%) or -0.30 (-30%)
   soundCue: "breaking_news" | "crash_alert" | "bullish_alert" | "fed_bell";

@@ -68,7 +68,7 @@ function PlayRoomContent() {
 
   // Mobile Bottom Tab: Market | Trade | Portfolio | Leaderboard | News
   const [mobileTab, setMobileTab] = useState<"market" | "trade" | "portfolio" | "news">("trade");
-  const [selectedAssetId, setSelectedAssetId] = useState<AssetId>("COFORGE");
+  const [selectedAssetId, setSelectedAssetId] = useState<AssetId>("RELIANCE");
   const [viewMode, setViewMode] = useState<"responsive" | "web" | "app">("responsive");
 
   // Mobile Bottom Sheet toggle
@@ -122,16 +122,16 @@ function PlayRoomContent() {
     const deskSetup = DESK_STARTING_PORTFOLIOS[desk] || {
       cash: STARTING_CASH,
       shares: {
-        MPHASIS: 0,
-        COFORGE: 0,
-        OFSS: 0,
-        LTTS: 0,
-        TATAELXSI: 0,
-        COLPAL: 0,
-        PGHH: 0,
-        RADICO: 0,
-        UBL: 0,
-        GILLETTE: 0,
+        RELIANCE: 0,
+        TATAMOTORS: 0,
+        TCS: 0,
+        HDFCBANK: 0,
+        INFY: 0,
+        ITC: 0,
+        ZOMATO: 0,
+        ADANIENT: 0,
+        SBIN: 0,
+        MARUTI: 0,
       },
     };
 

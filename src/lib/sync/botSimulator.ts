@@ -35,14 +35,15 @@ export function startBotSimulation(roomCode: string, tickMs: number = 2200): voi
         const news = room.currentNews;
         if (news.affectedAsset === "ALL") {
           targetAsset = assetKeys[Math.floor(Math.random() * assetKeys.length)];
-        } else if (news.affectedAsset === "IT") {
-          const itKeys = assetKeys.filter((k) => room.assets[k]?.category === "IT");
-          targetAsset = itKeys[Math.floor(Math.random() * itKeys.length)] || targetAsset;
-        } else if (news.affectedAsset === "FMCG") {
-          const fmcgKeys = assetKeys.filter((k) => room.assets[k]?.category === "FMCG");
-          targetAsset = fmcgKeys[Math.floor(Math.random() * fmcgKeys.length)] || targetAsset;
+        } else if (news.affectedCompanies && news.affectedCompanies.length > 0) {
+          targetAsset = news.affectedCompanies[Math.floor(Math.random() * news.affectedCompanies.length)];
         } else if (room.assets[news.affectedAsset as AssetId]) {
           targetAsset = news.affectedAsset as AssetId;
+        } else {
+          const matchingKeys = assetKeys.filter((k) => room.assets[k]?.category === news.affectedAsset);
+          if (matchingKeys.length > 0) {
+            targetAsset = matchingKeys[Math.floor(Math.random() * matchingKeys.length)];
+          }
         }
 
         if (news.sentiment.includes("bullish")) {

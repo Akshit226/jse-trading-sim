@@ -2,21 +2,24 @@ import { NewsEvent } from "@/types/trading";
 
 export const PRESET_NEWS_SCENARIOS: NewsEvent[] = [
   // ==========================================
-  // ROUND 1: Company Financial Performance & Demand/Supply
+  // ROUND 1: Company Financial Performance & EV Growth
   // ==========================================
   {
-    id: "r1-tataelxsi-earnings",
+    id: "r1-tatamotors-ev-surge",
     round: 1,
-    title: "Tata Elxsi Q3 Net Profit Surges +38% on Major Autonomous EV Design Wins",
+    title: "Tata Motors Q3 Net Profit Surges +74% on Record EV Sales & JLR Turnaround",
     description:
-      "Company Financial Performance: Automotive engineering deal pipeline accelerates. Tata Elxsi crushes Street estimates with record operating EBITDA margins of 29.5%.",
-    affectedAsset: "TATAELXSI",
+      "Electric Mobility Boom: Tata Motors reports all-time high quarterly operating profit of ₹7,025 Crore. Nexon EV & Punch EV command 73% Indian EV market share while Jaguar Land Rover free cash flow hits record £620M.",
+    affectedAsset: "TATAMOTORS",
+    affectedSector: "Automobile & Electric Vehicles",
+    affectedCompanies: ["TATAMOTORS"],
     sentiment: "strongly_bullish",
-    priceImpact: 0.18, // +18%
+    priceImpact: 0.22, // +22%
     soundCue: "bullish_alert",
     deskWhisper: {
       desk: "tech_analyst",
-      rumorText: "Channel checks in Munich confirm Tata Elxsi signed a confidential 5-year software-defined vehicle architecture deal with a German auto major.",
+      rumorText:
+        "Channel checks in Coventry & Pune confirm JLR order book at 148,000 units with supply bottlenecks completely resolved.",
     },
     voiceNarration: {
       pitch: 1.05,
@@ -26,89 +29,49 @@ export const PRESET_NEWS_SCENARIOS: NewsEvent[] = [
     timestamp: 0,
   },
   {
-    id: "r1-fmcg-festive-demand",
+    id: "r1-zomato-blinkit-profits",
     round: 1,
-    title: "Festive Demand Surge Triggers Record Supply Shipments for Colpal & Radico Khaitan",
+    title: "Blinkit Achieves Breakeven: Zomato Quick Commerce Revenue Explodes +115% YoY",
     description:
-      "Demand & Supply Shock: Rural off-take and festive consumer spending beat expectations. Premium spirit shipments jump 22% while oral care volumes hit 3-year highs.",
-    affectedAsset: "RADICO",
-    sentiment: "bullish",
-    priceImpact: 0.14, // +14%
+      "10-Minute Retail Revolution: Zomato delivers blowout Q2 results as Blinkit dark store throughput turns cash-flow positive. Quick commerce gross order value eclipses traditional food delivery.",
+    affectedAsset: "ZOMATO",
+    affectedSector: "Consumer Tech & Quick Commerce",
+    affectedCompanies: ["ZOMATO"],
+    sentiment: "strongly_bullish",
+    priceImpact: 0.19, // +19%
     soundCue: "breaking_news",
     deskWhisper: {
-      desk: "fmcg_consumer",
-      rumorText: "Distributor inventory checks show Magic Moments vodka and premium single malts facing stockouts across northern state warehouses.",
+      desk: "retail_momentum",
+      rumorText:
+        "Blinkit opening 100 new dark stores this quarter; institutional analysts doubling 12-month target multiples.",
     },
     voiceNarration: {
-      pitch: 1.0,
-      rate: 1.0,
+      pitch: 1.02,
+      rate: 1.02,
       urgency: "bullish",
     },
     timestamp: 0,
   },
 
   // ==========================================
-  // ROUND 2: Macro Inflation & Central Bank Interest Rates
+  // ROUND 2: Macro Inflation & Central Bank Rate Shocks
   // ==========================================
   {
-    id: "r2-inflation-fmcg",
+    id: "r2-rbi-rate-hike-banking",
     round: 2,
-    title: "Inflation Alert: Palm Oil & Packaging Spikes Compress FMCG Gross Margins",
+    title: "RBI Delivers Surprise 50 bps Repo Rate Hike; Directs Banks to Curb Unsecured Credit",
     description:
-      "Inflation Shock: Global agricultural disruptions drive raw material and crude packaging derivatives up 18%. FMCG firms signal near-term gross margin contraction.",
-    affectedAsset: "PGHH",
+      "Monetary Policy Shock: Persistent headline inflation forces the Reserve Bank of India into aggressive monetary tightening. Net interest margins face sharp compression as deposit costs surge.",
+    affectedAsset: "BANKING",
+    affectedSector: "Banking & Financial Services",
+    affectedCompanies: ["HDFCBANK", "SBIN"],
     sentiment: "strongly_bearish",
     priceImpact: -0.14, // -14%
-    soundCue: "crash_alert",
-    deskWhisper: {
-      desk: "fmcg_consumer",
-      rumorText: "Management at Procter & Gamble India privately preparing an emergency 6% product price hike to protect EBITDA margins.",
-    },
-    voiceNarration: {
-      pitch: 1.15,
-      rate: 1.12,
-      urgency: "emergency",
-    },
-    timestamp: 0,
-  },
-  {
-    id: "r2-rbi-rate-hike",
-    round: 2,
-    title: "RBI Delivers Surprise 50 bps Repo Rate Hike; High-Growth Tech Valuations Compressed",
-    description:
-      "Interest Rates & Investor Sentiment: Persistent headline inflation compels the Monetary Policy Committee into aggressive tightening. High-PE midcap IT multiples derate.",
-    affectedAsset: "COFORGE",
-    sentiment: "strongly_bearish",
-    priceImpact: -0.16, // -16%
     soundCue: "fed_bell",
     deskWhisper: {
       desk: "institutional_fii",
-      rumorText: "Foreign bond yields spiking; institutional algorithmic desks initiating basket sell orders across midcap IT growth names.",
-    },
-    voiceNarration: {
-      pitch: 1.1,
-      rate: 1.08,
-      urgency: "emergency",
-    },
-    timestamp: 0,
-  },
-
-  // ==========================================
-  // ROUND 3: Global Economic Shocks & Company Management Decisions
-  // ==========================================
-  {
-    id: "r3-global-slowdown",
-    round: 3,
-    title: "Global Economic Fears: Western Banking Turmoil Freezes Offshore Discretionary IT Spend",
-    description:
-      "Global Economic Shock: US and European tier-1 investment banks pause discretionary consulting budgets. Capital expenditure delays impact cloud transition providers.",
-    affectedAsset: "MPHASIS",
-    sentiment: "bearish",
-    priceImpact: -0.18, // -18%
-    soundCue: "crash_alert",
-    deskWhisper: {
-      desk: "institutional_fii",
-      rumorText: "Top 3 US mortgage client accounts for Mphasis slashing tech subcontracting spend by 25% for upcoming quarters.",
+      rumorText:
+        "FII algorithmic baskets triggered heavy institutional liquidation across private and PSU bank constituents.",
     },
     voiceNarration: {
       pitch: 1.12,
@@ -118,18 +81,73 @@ export const PRESET_NEWS_SCENARIOS: NewsEvent[] = [
     timestamp: 0,
   },
   {
-    id: "r3-coforge-ai-deal",
-    round: 3,
-    title: "Coforge Seals $400 Million Multi-Year Generative AI Transformation Contract",
+    id: "r2-us-tech-spending-cut",
+    round: 2,
+    title: "Wall Street Mega-Banks Slash Offshore Tech Budgets: Infosys & TCS Guidance Cut",
     description:
-      "Company News & Management Decisions: Coforge announces its largest-ever client win in the travel and hospitality vertical. Order book reaches lifetime high of $1.1 Billion.",
-    affectedAsset: "COFORGE",
-    sentiment: "strongly_bullish",
-    priceImpact: 0.22, // +22%
-    soundCue: "bullish_alert",
+      "Global Tech Spending Freeze: Top tier-1 US banking clients halt discretionary IT consulting contracts amid US recessionary fears. Deal conversions face unprecedented multi-month delays.",
+    affectedAsset: "IT",
+    affectedSector: "Information Technology",
+    affectedCompanies: ["INFY", "TCS"],
+    sentiment: "bearish",
+    priceImpact: -0.12, // -12%
+    soundCue: "crash_alert",
     deskWhisper: {
       desk: "tech_analyst",
-      rumorText: "CEO interview scheduled for national business television at market close confirming revenue guidance upgrade to +16% CC.",
+      rumorText:
+        "Infosys internal memo confirms North American BFSI pipeline conversion rate slowed to 3-year lows.",
+    },
+    voiceNarration: {
+      pitch: 1.15,
+      rate: 1.12,
+      urgency: "emergency",
+    },
+    timestamp: 0,
+  },
+
+  // ==========================================
+  // ROUND 3: Explosive Corporate Reports & Sovereign Mega-Deals
+  // ==========================================
+  {
+    id: "r3-adani-hindenburg-shock",
+    round: 3,
+    title: "US Short-Seller Report Alleges High Leverage: Adani Enterprises Sinks -28% in Heavy Sell-Off",
+    description:
+      "Explosive Forensic Report: Overseas short-seller publishes scathing allegations regarding offshore shell entities and debt leverage, triggering emergency circuit filters and massive margin calls.",
+    affectedAsset: "ADANIENT",
+    affectedSector: "Infrastructure & Energy Transition",
+    affectedCompanies: ["ADANIENT"],
+    sentiment: "strongly_bearish",
+    priceImpact: -0.28, // -28%
+    soundCue: "crash_alert",
+    deskWhisper: {
+      desk: "institutional_fii",
+      rumorText:
+        "Global custodian clearing desks raising margin requirements to 100% on Adani Group equity derivatives.",
+    },
+    voiceNarration: {
+      pitch: 1.18,
+      rate: 1.15,
+      urgency: "emergency",
+    },
+    timestamp: 0,
+  },
+  {
+    id: "r3-reliance-jio-green-energy",
+    round: 3,
+    title: "Reliance Unveils ₹75,000 Cr Green Energy Gigafactory & Accelerates Historic Jio 5G Mega-IPO",
+    description:
+      "Conglomerate Transformation: Chairman announces sovereign wealth funds acquiring strategic stakes in Jio Platforms at $110B valuation. Solar giga-manufacturing commences commercial output.",
+    affectedAsset: "RELIANCE",
+    affectedSector: "Energy, Telecom & Retail",
+    affectedCompanies: ["RELIANCE"],
+    sentiment: "strongly_bullish",
+    priceImpact: 0.18, // +18%
+    soundCue: "bullish_alert",
+    deskWhisper: {
+      desk: "fmcg_consumer",
+      rumorText:
+        "Sovereign wealth fund allocations leaked early; expected institutional block accumulation order arriving at market bell.",
     },
     voiceNarration: {
       pitch: 1.05,
@@ -140,21 +158,24 @@ export const PRESET_NEWS_SCENARIOS: NewsEvent[] = [
   },
 
   // ==========================================
-  // ROUND 4: Government Regulations & Institutional/Foreign Capital Flows
+  // ROUND 4: Government Regulation & Foreign Capital Inflows
   // ==========================================
   {
-    id: "r4-excise-policy",
+    id: "r4-hybrid-gst-concession",
     round: 4,
-    title: "Government Eases State Alco-Bev Excise Duties & Simplifies Retail Licensing",
+    title: "Government Proposes Historic 50% GST Reduction for Strong Hybrid Cars; Maruti Rallies",
     description:
-      "Government Policies & Regulations: Favorable state excise council decision lowers export surcharges and permits extended micro-brewery retail operating hours.",
-    affectedAsset: "UBL",
+      "Union Policy Shift: Ministry of Heavy Industries rewards clean hybrid powertrains over EV-only subsidies. Maruti Suzuki Grand Vitara & Invicto backorders surge past 150,000 units.",
+    affectedAsset: "MARUTI",
+    affectedSector: "Automobile & Mobility",
+    affectedCompanies: ["MARUTI"],
     sentiment: "strongly_bullish",
-    priceImpact: 0.20, // +20%
+    priceImpact: 0.21, // +21%
     soundCue: "breaking_news",
     deskWhisper: {
       desk: "retail_momentum",
-      rumorText: "State excise notification gazette leaked early; United Breweries and Radico Khaitan set for immediate direct-to-consumer margin expansion.",
+      rumorText:
+        "GST council draft gazette confirmed; Maruti Suzuki dealer inventory cleared out with 6-month waiting lists.",
     },
     voiceNarration: {
       pitch: 1.02,
@@ -164,18 +185,32 @@ export const PRESET_NEWS_SCENARIOS: NewsEvent[] = [
     timestamp: 0,
   },
   {
-    id: "r4-fii-mega-inflow",
+    id: "r4-fii-sovereign-inflow",
     round: 4,
-    title: "Institutional Inflows: FIIs Pump Record ₹8,200 Crores into Indian Equities in Single Day",
+    title: "Sovereign Tsunami: Foreign Institutional Investors Pump Record ₹12,500 Cr in Single Day",
     description:
-      "Foreign Capital Flows & Market Liquidity: Massive global allocation rotation into India. Strong sovereign rupee stability prompts foreign funds to aggressively accumulate.",
+      "Record Liquidity Influx: Global emerging market index upgrades trigger massive institutional capital re-allocation into Indian equities. Frontline bluechip heavyweights aggressively cornered.",
     affectedAsset: "ALL",
-    sentiment: "bullish",
-    priceImpact: 0.09, // +9% across board
+    affectedSector: "Broad Market Index (All 10 Bluechips)",
+    affectedCompanies: [
+      "RELIANCE",
+      "TATAMOTORS",
+      "TCS",
+      "HDFCBANK",
+      "INFY",
+      "ITC",
+      "ZOMATO",
+      "ADANIENT",
+      "SBIN",
+      "MARUTI",
+    ],
+    sentiment: "strongly_bullish",
+    priceImpact: 0.08, // +8% Market-Wide
     soundCue: "bullish_alert",
     deskWhisper: {
       desk: "institutional_fii",
-      rumorText: "Custody bank flows confirm sovereign wealth funds clearing large block accumulation orders across Nifty IT and FMCG index constituents.",
+      rumorText:
+        "Custody desks executing non-discretionary index tracking basket buys across all 10 index heavyweights.",
     },
     voiceNarration: {
       pitch: 1.0,
@@ -186,21 +221,24 @@ export const PRESET_NEWS_SCENARIOS: NewsEvent[] = [
   },
 
   // ==========================================
-  // ROUND 5: Dividend Announcements, Company Valuations & Final Squeeze
+  // ROUND 5: Historic Demergers & Mega Deals Squeeze
   // ==========================================
   {
-    id: "r5-ofss-mega-dividend",
+    id: "r5-itc-hotels-demerger-dividend",
     round: 5,
-    title: "Oracle Financial Services (OFSS) Declares Record ₹220/Share Special Interim Dividend",
+    title: "ITC Board Approves Historic 1:1 Hotel Demerger & Declares Record ₹15/Share Special Cash Dividend",
     description:
-      "Dividend Announcement: Cash-rich OFSS returns massive surplus treasury cash to shareholders. Dividend yield approaches 8%, sparking ferocious institutional buying.",
-    affectedAsset: "OFSS",
+      "Value Unlocking Squeeze: Decades-long hotel demerger finalized with independent luxury listing. ITC returns ₹18,500 Crore cash surplus to shareholders, igniting ferocious short covering.",
+    affectedAsset: "ITC",
+    affectedSector: "Fast-Moving Consumer Goods & Hospitality",
+    affectedCompanies: ["ITC"],
     sentiment: "strongly_bullish",
     priceImpact: 0.24, // +24%
     soundCue: "bullish_alert",
     deskWhisper: {
-      desk: "retail_momentum",
-      rumorText: "Ex-dividend date set for next week; high-yield income funds cornering all available floating liquidity in OFSS.",
+      desk: "fmcg_consumer",
+      rumorText:
+        "Ex-dividend date set for next session; high-yield mutual funds cornering every available offer on the book.",
     },
     voiceNarration: {
       pitch: 1.06,
@@ -210,22 +248,25 @@ export const PRESET_NEWS_SCENARIOS: NewsEvent[] = [
     timestamp: 0,
   },
   {
-    id: "r5-brokerage-upgrade",
+    id: "r5-tcs-mega-ai-contract",
     round: 5,
-    title: "Global Investment Banks Upgrade Gillette & Tata Elxsi on Superior Return on Equity",
+    title: "TCS Seals Historic $1 Billion Generative AI Enterprise Contract with European Retail Giant",
     description:
-      "Company Valuations & Market Psychology: Analysts cite pricing dominance and debt-free balance sheets. Target prices raised by 30% amidst heavy short covering.",
-    affectedAsset: "GILLETTE",
-    sentiment: "bullish",
-    priceImpact: 0.16, // +16%
-    soundCue: "breaking_news",
+      "Landmark Tech Contract: Asia's largest IT company signs its biggest deal of the decade to build proprietary sovereign AI foundations for 40,000 enterprise retail outlets.",
+    affectedAsset: "TCS",
+    affectedSector: "Information Technology & Enterprise AI",
+    affectedCompanies: ["TCS", "INFY"],
+    sentiment: "strongly_bullish",
+    priceImpact: 0.18, // +18%
+    soundCue: "bullish_alert",
     deskWhisper: {
       desk: "tech_analyst",
-      rumorText: "Institutional research desk upgrading Gillette to 'Conviction Buy' citing complete pass-through of cost pressures.",
+      rumorText:
+        "CEO live television broadcast confirmed; revenue guidance upgraded to double digits for the coming fiscal year.",
     },
     voiceNarration: {
-      pitch: 1.0,
-      rate: 1.0,
+      pitch: 1.04,
+      rate: 1.02,
       urgency: "authoritative",
     },
     timestamp: 0,

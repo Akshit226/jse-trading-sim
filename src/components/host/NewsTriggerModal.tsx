@@ -16,7 +16,7 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
 }) => {
   const [customTitle, setCustomTitle] = useState("");
   const [customDesc, setCustomDesc] = useState("");
-  const [customAsset, setCustomAsset] = useState<AssetId | "ALL" | "IT" | "FMCG">("MPHASIS");
+  const [customAsset, setCustomAsset] = useState<AssetId | "ALL" | "IT" | "AUTO" | "BANKING" | "FMCG">("RELIANCE");
   const [customImpact, setCustomImpact] = useState<number>(15);
   const [customSentiment, setCustomSentiment] = useState<NewsSentiment>("strongly_bullish");
 
@@ -136,19 +136,21 @@ export const NewsTriggerModal: React.FC<NewsTriggerModalProps> = ({
               onChange={(e) => setCustomAsset(e.target.value as any)}
               className="w-full bg-surface-subtle border border-borderSubtle focus:border-borderFocus rounded-ui px-3 py-2 text-white text-xs font-mono focus:outline-none"
             >
-              <option value="ALL">ALL — Broad Market Index</option>
-              <option value="IT">IT — Information Technology Basket</option>
-              <option value="FMCG">FMCG — Fast-Moving Consumer Goods Basket</option>
-              <option value="MPHASIS">MPHASIS — Mphasis Limited (Information Technology)</option>
-              <option value="COFORGE">COFORGE — Coforge Limited (Information Technology)</option>
-              <option value="OFSS">OFSS — Oracle Financial Services Software (Information Technology)</option>
-              <option value="LTTS">LTTS — L&T Technology Services Limited (Information Technology)</option>
-              <option value="TATAELXSI">TATAELXSI — Tata Elxsi Limited (Information Technology)</option>
-              <option value="COLPAL">COLPAL — Colgate-Palmolive (India) Limited (Fast-Moving Consumer Goods)</option>
-              <option value="PGHH">PGHH — Procter & Gamble Hygiene (Fast-Moving Consumer Goods)</option>
-              <option value="RADICO">RADICO — Radico Khaitan Limited (Fast-Moving Consumer Goods)</option>
-              <option value="UBL">UBL — United Breweries Limited (Fast-Moving Consumer Goods)</option>
-              <option value="GILLETTE">GILLETTE — Gillette India Limited (Fast-Moving Consumer Goods)</option>
+              <option value="ALL">ALL — Broad Market Macro Index</option>
+              <option value="AUTO">AUTO — Automobile Sector (Tata Motors, Maruti)</option>
+              <option value="IT">IT — Information Technology (TCS, Infosys)</option>
+              <option value="BANKING">BANKING — Banking & Finance (HDFC Bank, SBI)</option>
+              <option value="FMCG">FMCG — Consumer Goods (ITC, Zomato)</option>
+              <option value="RELIANCE">RELIANCE — Reliance Industries Limited (Energy & Jio 5G)</option>
+              <option value="TATAMOTORS">TATAMOTORS — Tata Motors Limited (Automotive & EVs)</option>
+              <option value="TCS">TCS — Tata Consultancy Services Limited (IT Powerhouse)</option>
+              <option value="HDFCBANK">HDFCBANK — HDFC Bank Limited (Private Banking Giant)</option>
+              <option value="INFY">INFY — Infosys Limited (Global Software Exporter)</option>
+              <option value="ITC">ITC — ITC Limited (FMCG Fortress & Hotels)</option>
+              <option value="ZOMATO">ZOMATO — Zomato Limited (Quick Commerce & Blinkit)</option>
+              <option value="ADANIENT">ADANIENT — Adani Enterprises Limited (Infra & Energy)</option>
+              <option value="SBIN">SBIN — State Bank of India (Public Sector Banking)</option>
+              <option value="MARUTI">MARUTI — Maruti Suzuki India Limited (Passenger Auto King)</option>
             </select>
           </div>
         </div>

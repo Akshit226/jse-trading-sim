@@ -124,13 +124,10 @@ export const BreakingNewsBanner: React.FC<BreakingNewsBannerProps> = ({ news, on
               <div className="flex items-center justify-between gap-2">
                 <span className="text-neutralMuted shrink-0">Target Sector / Equities:</span>
                 <span className="font-bold text-white text-right truncate">
-                  {news.affectedAsset === "ALL"
-                    ? "Broad Market Index (All Equities)"
-                    : news.affectedAsset === "IT"
-                    ? "Information Technology Basket"
-                    : news.affectedAsset === "FMCG"
-                    ? "Fast-Moving Consumer Goods Basket"
-                    : `${getCompanyFullName(news.affectedAsset)} (${news.affectedAsset}) • ${getCompanyIndustry(news.affectedAsset)}`}
+                  {news.affectedSector ||
+                    (news.affectedAsset === "ALL"
+                      ? "Broad Market Index (All 10 Bluechips)"
+                      : `${getCompanyFullName(news.affectedAsset)} (${news.affectedAsset}) • ${getCompanyIndustry(news.affectedAsset)}`)}
                 </span>
               </div>
               <div className="flex items-center justify-between">

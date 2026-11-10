@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { NewsEvent, Asset } from "@/types/trading";
+import { NewsEvent, Asset, AssetId } from "@/types/trading";
 import { getCompanyFullName, getCompanyIndustry, getCompanySubSector, formatINR } from "@/lib/constants";
 import { PriceChart } from "@/components/trading/PriceChart";
 import { sounds } from "@/lib/audio";
@@ -30,6 +30,17 @@ interface ProjectorNewsHUDProps {
 }
 
 const PRESET_VIDEO_IDS = new Set([
+  "r1-tatamotors-ev-surge",
+  "r1-zomato-blinkit-profits",
+  "r2-rbi-rate-hike-banking",
+  "r2-us-tech-spending-cut",
+  "r3-adani-hindenburg-shock",
+  "r3-reliance-jio-green-energy",
+  "r4-hybrid-gst-concession",
+  "r4-fii-sovereign-inflow",
+  "r5-itc-hotels-demerger-dividend",
+  "r5-tcs-mega-ai-contract",
+  // Legacy alias support
   "r1-tataelxsi-earnings",
   "r1-fmcg-festive-demand",
   "r2-inflation-fmcg",
@@ -279,13 +290,11 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
                     <span>{isBullish ? "Bullish Shock" : isBearish ? "Bearish Shock" : "Alert"}</span>
                   </span>
 
-                  <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-surface-subtle border border-borderSubtle text-white font-semibold">
-                    <span className="text-neutralMuted mr-1">Target:</span>
-                    <span className="text-accent font-bold">
-                      {activeNews.affectedAsset === "ALL"
-                        ? "Market-Wide (All 10)"
-                        : activeNews.affectedAsset}
-                    </span>
+                  <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-accent/15 border border-accent/40 text-accent font-bold uppercase">
+                    {activeNews.affectedSector ||
+                      (activeNews.affectedAsset === "ALL"
+                        ? "Market-Wide (All 10 Bluechips)"
+                        : `${getCompanyFullName(activeNews.affectedAsset)} • ${getCompanyIndustry(activeNews.affectedAsset)}`)}
                   </span>
 
                   <span
@@ -298,6 +307,32 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
                     {isPriceUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                     <span>{isPriceUp ? "+" : ""}{(activeNews.priceImpact * 100).toFixed(0)}% Shift</span>
                   </span>
+                </div>
+
+                {/* Direct Company Impact Indicator Box */}
+                <div className="p-2.5 rounded-ui bg-surface/90 border border-borderSubtle flex flex-wrap items-center gap-2 font-mono text-xs">
+                  <span className="text-[10px] font-bold text-neutralMuted uppercase">Direct Impact:</span>
+                  {(activeNews.affectedCompanies && activeNews.affectedCompanies.length > 0
+                    ? activeNews.affectedCompanies
+                    : activeNews.affectedAsset === "ALL"
+                    ? (["RELIANCE", "TATAMOTORS", "TCS", "HDFCBANK", "INFY", "ITC", "ZOMATO", "ADANIENT", "SBIN", "MARUTI"] as AssetId[])
+                    : ([activeNews.affectedAsset as AssetId])
+                  ).map((sym) => (
+                    <span
+                      key={sym}
+                      className={`px-2 py-0.5 rounded text-[11px] font-bold border flex items-center gap-1 ${
+                        isPriceUp
+                          ? "bg-gain-subtle text-gain border-gain-border"
+                          : "bg-loss-subtle text-loss border-loss-border"
+                      }`}
+                    >
+                      <span>{isPriceUp ? "▲" : "▼"}</span>
+                      <span>{getCompanyFullName(sym)} ({sym})</span>
+                      <span className="tabular-nums font-extrabold">
+                        {isPriceUp ? "+" : ""}{(activeNews.priceImpact * 100).toFixed(0)}%
+                      </span>
+                    </span>
+                  ))}
                 </div>
 
                 {/* High-Impact Headline */}

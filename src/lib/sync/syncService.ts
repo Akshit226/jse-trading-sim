@@ -85,9 +85,12 @@ export async function getRoomState(code: string): Promise<RoomState | null> {
       const roomRef = ref(database, `rooms/${upperCode}`);
       const snapshot = await get(roomRef);
       if (snapshot.exists()) {
-        const norm = normalizeRoomState(snapshot.val());
-        inMemoryRooms.set(upperCode, norm);
-        return norm;
+        const val = snapshot.val();
+        if (val && val.assets && val.assets.RELIANCE) {
+          const norm = normalizeRoomState(val);
+          inMemoryRooms.set(upperCode, norm);
+          return norm;
+        }
       }
     } catch (err) {
       // Permission denied or network issue -> fallback to server API
@@ -112,7 +115,9 @@ export async function getRoomState(code: string): Promise<RoomState | null> {
     if (raw) {
       try {
         const parsed = JSON.parse(raw);
-        return normalizeRoomState(parsed);
+        if (parsed && parsed.assets && parsed.assets.RELIANCE) {
+          return normalizeRoomState(parsed);
+        }
       } catch {}
     }
   } else {

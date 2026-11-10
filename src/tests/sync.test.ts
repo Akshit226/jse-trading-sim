@@ -22,10 +22,10 @@ describe("Room Synchronization and Multi-User Flow (Indian Stocks)", () => {
     assert.equal(room.code, "INDRM1");
     assert.equal(room.status, "LOBBY");
     assert.equal(Object.keys(room.assets).length, 10);
-    assert.ok(room.assets.MPHASIS);
-    assert.ok(room.assets.COFORGE);
-    assert.ok(room.assets.COLPAL);
-    assert.ok(room.assets.TATAELXSI);
+    assert.ok(room.assets.RELIANCE);
+    assert.ok(room.assets.TATAMOTORS);
+    assert.ok(room.assets.TCS);
+    assert.ok(room.assets.HDFCBANK);
     assert.equal(Object.keys(room.players).length, 0);
   });
 
@@ -49,7 +49,7 @@ describe("Room Synchronization and Multi-User Flow (Indian Stocks)", () => {
     const room = await joinPlayer(roomCode, student);
     assert.ok(room.players["std-1"]);
     assert.equal(room.players["std-1"].name, "Arjun Nambiar");
-    assert.equal(room.players["std-1"].shares.MPHASIS, 25);
+    assert.equal(room.players["std-1"].shares.TCS, 30);
   });
 
   it("should spawn 30 AI classmates with Indian names and desk portfolios", async () => {
@@ -69,12 +69,12 @@ describe("Room Synchronization and Multi-User Flow (Indian Stocks)", () => {
       playerId: "std-1",
       playerName: "Arjun Nambiar",
       desk: "tech_analyst",
-      assetId: "MPHASIS",
+      assetId: "TCS",
       side: "BUY",
       quantity: 10,
-      price: 2850,
+      price: 4150,
       timestamp: Date.now(),
-      total: 28500,
+      total: 41500,
     };
 
     const result = await submitOrder(roomCode, order);
@@ -82,7 +82,7 @@ describe("Room Synchronization and Multi-User Flow (Indian Stocks)", () => {
     assert.ok(result.room);
 
     const updatedStudent = result.room!.players["std-1"];
-    assert.equal(updatedStudent.shares.MPHASIS, 35);
+    assert.equal(updatedStudent.shares.TCS, 40);
     assert.equal(updatedStudent.totalTrades, 1);
   });
 
@@ -95,12 +95,12 @@ describe("Room Synchronization and Multi-User Flow (Indian Stocks)", () => {
       playerId: "std-1",
       playerName: "Arjun Nambiar",
       desk: "tech_analyst",
-      assetId: "MPHASIS",
+      assetId: "TCS",
       side: "BUY",
       quantity: 5,
-      price: 2850,
+      price: 4150,
       timestamp: Date.now(),
-      total: 14250,
+      total: 20750,
     };
 
     const result = await submitOrder(roomCode, order);
@@ -117,12 +117,12 @@ describe("Room Synchronization and Multi-User Flow (Indian Stocks)", () => {
       playerId: "std-1",
       playerName: "Arjun Nambiar",
       desk: "tech_analyst",
-      assetId: "MPHASIS",
+      assetId: "TCS",
       side: "BUY",
       quantity: 5,
-      price: 2850,
+      price: 4150,
       timestamp: Date.now(),
-      total: 14250,
+      total: 20750,
     };
 
     const result = await submitOrder(roomCode, order);
@@ -130,11 +130,11 @@ describe("Room Synchronization and Multi-User Flow (Indian Stocks)", () => {
   });
 
   it("should trigger breaking news and impact asset prices across the room", async () => {
-    const news = PRESET_NEWS_SCENARIOS[0]; // Tata Elxsi +18%
+    const news = PRESET_NEWS_SCENARIOS[0]; // Tata Motors +22%
     const updatedRoom = await triggerNewsEvent(roomCode, news);
 
     assert.equal(updatedRoom.currentNews?.id, news.id);
-    assert.ok(updatedRoom.assets.TATAELXSI.currentPrice > 7100);
+    assert.ok(updatedRoom.assets.TATAMOTORS.currentPrice > 980);
   });
 
   it("should advance rounds properly locking previous close as new open price", async () => {
@@ -144,9 +144,9 @@ describe("Room Synchronization and Multi-User Flow (Indian Stocks)", () => {
     assert.equal(advanced.status, "ACTIVE");
 
     // "THE OPENING PRICE WILL BE DECIDED BY THE PREVIOUS CLOSING PRICE"
-    const mphasisAsset = advanced.assets.MPHASIS;
-    assert.equal(mphasisAsset.roundOpenPrice, mphasisAsset.currentPrice);
-    assert.equal(mphasisAsset.previousClosePrice, mphasisAsset.currentPrice);
-    assert.equal(mphasisAsset.changePercent, 0);
+    const relianceAsset = advanced.assets.RELIANCE;
+    assert.equal(relianceAsset.roundOpenPrice, relianceAsset.currentPrice);
+    assert.equal(relianceAsset.previousClosePrice, relianceAsset.currentPrice);
+    assert.equal(relianceAsset.changePercent, 0);
   });
 });

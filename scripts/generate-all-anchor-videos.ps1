@@ -9,44 +9,44 @@ if (-not (Test-Path $outputDir)) {
 
 $scenarios = @(
     @{
-        id = "r1-tataelxsi-earnings";
-        text = "Attention trading floor: Breaking news alert. Tata Elxsi Net Profit Surges 38 percent on major autonomous electric vehicle design wins. Operating margins expand to record highs as institutional buy orders flood the market."
+        id = "r1-tatamotors-ev-surge";
+        text = "Attention trading floor: Breaking news alert. Tata Motors Net Profit Surges 74 percent on record electric vehicle sales and a massive turnaround at Jaguar Land Rover. Institutional buy orders are flooding the automotive desk."
     },
     @{
-        id = "r1-fmcg-festive-demand";
-        text = "Breaking news from the consumer desk: Festive demand surge triggers record supply shipments for Colgate Palmolive and Radico Khaitan. Rural consumer spending beats street estimates."
+        id = "r1-zomato-blinkit-profits";
+        text = "Breaking news from consumer tech: Blinkit achieves operational breakeven! Zomato quick commerce revenue explodes 115 percent year over year, with 10-minute grocery volume eclipsing food delivery."
     },
     @{
-        id = "r2-inflation-fmcg";
-        text = "Urgent market warning! Emergency alert. Inflation spike: Palm oil and crude packaging derivatives surge 18 percent. FMCG margins face immediate compression across consumer staples."
+        id = "r2-rbi-rate-hike-banking";
+        text = "Urgent central bank policy alert: The Reserve Bank of India delivers a surprise 50 basis points repo rate hike and orders banks to curb unsecured credit. HDFC Bank and State Bank of India face immediate margin compression."
     },
     @{
-        id = "r2-rbi-rate-hike";
-        text = "Central bank policy alert: Reserve Bank of India delivers surprise 50 basis points repo rate hike. Algorithmic desks trigger widespread sell-offs across high-growth technology equities."
+        id = "r2-us-tech-spending-cut";
+        text = "Global market warning: Wall Street mega-banks freeze discretionary technology consulting contracts amid recessionary concerns. Infosys and Tata Consultancy Services cut annual revenue guidance."
     },
     @{
-        id = "r3-global-slowdown";
-        text = "Global market shock: Western banking turmoil freezes offshore tech consulting spend. Capital expenditure cuts impact enterprise cloud transition contracts."
+        id = "r3-adani-hindenburg-shock";
+        text = "Explosive corporate news flash: A United States short-seller report alleges offshore accounting fraud and high leverage at the Adani Group. Adani Enterprises plunges 28 percent in heavy panic selling."
     },
     @{
-        id = "r3-coforge-ai-deal";
-        text = "Major positive update: Coforge seals massive 400 million dollar multi-year Generative AI transformation contract. Order book reaches a lifetime high."
+        id = "r3-reliance-jio-green-energy";
+        text = "Major conglomerate update: Reliance Industries unveils a 75,000 crore green energy gigafactory roadmap and prepares a historic 110 billion dollar valuation mega-IPO for Jio Platforms."
     },
     @{
-        id = "r4-excise-policy";
-        text = "Government policy announcement: State excise duties eased and retail licensing simplified. United Breweries and Radico Khaitan gain immediate pricing power."
+        id = "r4-hybrid-gst-concession";
+        text = "Government policy announcement: The Union Ministry proposes a 50 percent GST concession for clean hybrid vehicles. Maruti Suzuki explodes upward with over 150,000 backlogged hybrid orders."
     },
     @{
-        id = "r4-fii-mega-inflow";
-        text = "Institutional capital alert: Foreign institutional investors pump record 8,200 crore rupees into Indian equities in a single day, driving broad-market rallies."
+        id = "r4-fii-sovereign-inflow";
+        text = "Sovereign liquidity alert: Foreign institutional investors pump a record 12,500 crore rupees into Indian bluechips in a single trading session, sparking a market-wide tsunami across all frontline heavyweights."
     },
     @{
-        id = "r5-ofss-mega-dividend";
-        text = "Special dividend announcement: Oracle Financial Services declares record 220 rupees per share interim dividend. High-yield funds trigger ferocious accumulation."
+        id = "r5-itc-hotels-demerger-dividend";
+        text = "Historic value unlocking news: The ITC board approves a landmark 1-for-1 hotel demerger and declares an unprecedented 15 rupees per share special cash dividend, triggering ferocious short covering."
     },
     @{
-        id = "r5-brokerage-upgrade";
-        text = "Wall Street upgrade alert: Global investment banks initiate Conviction Buy ratings on Gillette and Tata Elxsi, citing superior pricing power and debt-free balance sheets."
+        id = "r5-tcs-mega-ai-contract";
+        text = "Enterprise AI breakthrough: Tata Consultancy Services signs a landmark 1 billion dollar generative AI enterprise transformation contract with a European retail giant, driving an explosive end-of-round tech rally."
     }
 )
 

@@ -30,7 +30,7 @@ export const TradePad: React.FC<TradePadProps> = ({
   onSelectAsset,
   compact = false,
 }) => {
-  const [internalAssetId, setInternalAssetId] = useState<AssetId>("MPHASIS");
+  const [internalAssetId, setInternalAssetId] = useState<AssetId>("RELIANCE");
   const selectedAssetId = externalAssetId || internalAssetId;
 
   const asset = room.assets?.[selectedAssetId];

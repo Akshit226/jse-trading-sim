@@ -29,31 +29,31 @@ describe("Trading Simulation Core Engine (Indian Stocks & ₹ INR)", () => {
   };
 
   it("should validate buy order with sufficient funds", () => {
-    const asset = INITIAL_ASSETS.MPHASIS;
+    const asset = INITIAL_ASSETS.TCS;
     const result = validateTrade(mockPlayer, asset, "BUY", 10);
     assert.equal(result.valid, true);
-    assert.equal(result.total, 28500); // 10 * ₹2,850
+    assert.equal(result.total, 41500); // 10 * ₹4,150
   });
 
   it("should reject buy order when cash is insufficient", () => {
-    const asset = INITIAL_ASSETS.PGHH;
-    // 1000 shares * ₹15,800 = ₹1,58,00,000 (exceeds cash)
+    const asset = INITIAL_ASSETS.MARUTI;
+    // 1000 shares * ₹12,400 = ₹1,24,00,000 (exceeds cash)
     const result = validateTrade(mockPlayer, asset, "BUY", 1000);
     assert.equal(result.valid, false);
     assert.match(result.error || "", /Insufficient cash/i);
   });
 
   it("should reject sell order when holding is insufficient", () => {
-    const asset = INITIAL_ASSETS.COLPAL;
-    // Tech desk starts with 0 shares of COLPAL
+    const asset = INITIAL_ASSETS.HDFCBANK;
+    // Tech desk starts with 0 shares of HDFCBANK
     const result = validateTrade(mockPlayer, asset, "SELL", 10);
     assert.equal(result.valid, false);
     assert.match(result.error || "", /Insufficient shares/i);
   });
 
   it("should execute buy order and correctly deduct cash and add shares", () => {
-    const asset = INITIAL_ASSETS.MPHASIS;
-    const initialShares = mockPlayer.shares.MPHASIS;
+    const asset = INITIAL_ASSETS.TCS;
+    const initialShares = mockPlayer.shares.TCS;
     const initialCash = mockPlayer.cash;
 
     const order: TradeOrder = {
@@ -61,47 +61,47 @@ describe("Trading Simulation Core Engine (Indian Stocks & ₹ INR)", () => {
       playerId: mockPlayer.id,
       playerName: mockPlayer.name,
       desk: mockPlayer.desk,
-      assetId: "MPHASIS",
+      assetId: "TCS",
       side: "BUY",
       quantity: 10,
       price: asset.currentPrice,
       timestamp: Date.now(),
-      total: 28500,
+      total: 41500,
     };
 
     const updatedPlayer = executeTradeOnPortfolio(mockPlayer, order);
-    assert.equal(updatedPlayer.cash, initialCash - 28500);
-    assert.equal(updatedPlayer.shares.MPHASIS, initialShares + 10);
+    assert.equal(updatedPlayer.cash, initialCash - 41500);
+    assert.equal(updatedPlayer.shares.TCS, initialShares + 10);
     assert.equal(updatedPlayer.totalTrades, 1);
   });
 
   it("should move asset price dynamically upward on buy volume", () => {
-    const asset = { ...INITIAL_ASSETS.COFORGE };
+    const asset = { ...INITIAL_ASSETS.RELIANCE };
     const order: TradeOrder = {
       id: "ord-2",
       playerId: "p1",
       playerName: "Aarav",
       desk: "tech_analyst",
-      assetId: "COFORGE",
+      assetId: "RELIANCE",
       side: "BUY",
       quantity: 50,
-      price: 7600,
+      price: 2950,
       timestamp: Date.now(),
-      total: 380000,
+      total: 147500,
     };
 
     const updatedAsset = applyTradeToAsset(asset, order);
-    assert.ok(updatedAsset.currentPrice > 7600, "Price should increase after BUY");
+    assert.ok(updatedAsset.currentPrice > 2950, "Price should increase after BUY");
     assert.equal(updatedAsset.volume, 50);
   });
 
   it("should apply breaking news impact correctly to Indian stocks", () => {
-    const asset = { ...INITIAL_ASSETS.TATAELXSI };
-    const news = PRESET_NEWS_SCENARIOS[0]; // +18% on TATAELXSI
+    const asset = { ...INITIAL_ASSETS.TATAMOTORS };
+    const news = PRESET_NEWS_SCENARIOS[0]; // +22% on TATAMOTORS
     const updatedAsset = applyNewsToAsset(asset, news);
 
-    assert.ok(updatedAsset.currentPrice > 7100);
-    assert.equal(updatedAsset.currentPrice, Number((7100 * 1.18).toFixed(2)));
+    assert.ok(updatedAsset.currentPrice > 980);
+    assert.equal(updatedAsset.currentPrice, Number((980 * 1.22).toFixed(2)));
   });
 
   it("should recalculate portfolio and accurately rank players in ₹ INR", () => {
@@ -119,16 +119,16 @@ describe("Trading Simulation Core Engine (Indian Stocks & ₹ INR)", () => {
       name: "Player 2",
       cash: 1200000,
       shares: {
-        MPHASIS: 0,
-        COFORGE: 0,
-        OFSS: 0,
-        LTTS: 0,
-        TATAELXSI: 0,
-        COLPAL: 0,
-        PGHH: 0,
-        RADICO: 0,
-        UBL: 0,
-        GILLETTE: 0,
+        RELIANCE: 0,
+        TATAMOTORS: 0,
+        TCS: 0,
+        HDFCBANK: 0,
+        INFY: 0,
+        ITC: 0,
+        ZOMATO: 0,
+        ADANIENT: 0,
+        SBIN: 0,
+        MARUTI: 0,
       },
     };
 

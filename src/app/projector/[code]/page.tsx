@@ -36,7 +36,7 @@ export default function ProjectorDisplayPage() {
   const roomCode = ((params?.code as string) || "WALLST").toUpperCase();
 
   const [room, setRoom] = useState<RoomState | null>(null);
-  const [selectedAssetId, setSelectedAssetId] = useState<AssetId>("MPHASIS");
+  const [selectedAssetId, setSelectedAssetId] = useState<AssetId>("RELIANCE");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [originUrl, setOriginUrl] = useState("");
 

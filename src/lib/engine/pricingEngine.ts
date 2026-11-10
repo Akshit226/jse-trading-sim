@@ -1,18 +1,18 @@
 import { Asset, AssetId, NewsEvent, TradeOrder } from "@/types/trading";
 
 // Liquidity depth: how much capital needed to move price by 100%
-// Calibrated for ₹10,00,000 student accounts
+// Calibrated for ₹10,00,000 student accounts across Mega-Cap Bluechips
 export const ASSET_DEPTH: Record<AssetId, number> = {
-  MPHASIS: 2500000,
-  COFORGE: 3500000,
-  OFSS: 4500000,
-  LTTS: 3000000,
-  TATAELXSI: 3200000,
-  COLPAL: 5000000,   // High defensive liquidity
-  PGHH: 6000000,     // Low beta, high depth
-  RADICO: 2200000,   // High retail momentum sensitivity
-  UBL: 2400000,
-  GILLETTE: 4000000,
+  RELIANCE: 8000000,   // India's largest heavyweight, deep institutional liquidity
+  TATAMOTORS: 4500000, // High retail momentum, responsive price action
+  TCS: 7500000,        // IT titan, deep liquidity
+  HDFCBANK: 7000000,   // Top private banking constituent
+  INFY: 6500000,       // Active FII & domestic mutual fund trading
+  ITC: 5500000,        // High-volume defensive compounder
+  ZOMATO: 3200000,     // High retail beta, explosive price velocity
+  ADANIENT: 4000000,   // High-beta volatility & breakout momentum
+  SBIN: 5000000,       // Sovereign PSU banking liquidity
+  MARUTI: 6000000,     // Auto market leader
 };
 
 export const MIN_PRICE = 10.0;
@@ -58,9 +58,9 @@ export function applyNewsToAsset(asset: Asset, news: NewsEvent): Asset {
 
   if (news.affectedAsset === "ALL") {
     impact = news.priceImpact;
-  } else if (news.affectedAsset === "IT" && asset.category === "IT") {
+  } else if (news.affectedCompanies && news.affectedCompanies.includes(asset.id)) {
     impact = news.priceImpact;
-  } else if (news.affectedAsset === "FMCG" && asset.category === "FMCG") {
+  } else if (news.affectedAsset === asset.category) {
     impact = news.priceImpact;
   } else if (news.affectedAsset === asset.id) {
     impact = news.priceImpact;
