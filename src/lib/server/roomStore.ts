@@ -102,6 +102,16 @@ export function pushRemoteRoom(room: RoomState): void {
   } catch {}
 }
 
+export function patchRemoteRoomStatus(upper: string, status: RoomState["status"]): void {
+  try {
+    fetch(`${FIREBASE_DB_URL}/rooms/${upper}/status.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(status),
+    }).catch(() => {});
+  } catch {}
+}
+
 function persistRoomToDisk(room: RoomState): void {
   try {
     const file = getRoomFilePath(room.code.toUpperCase());
@@ -240,6 +250,13 @@ export function serverSubmitOrder(
   const asset = room.assets[order.assetId];
   if (!asset) return { success: false, error: "Asset not found" };
 
+  if (room.status !== "ACTIVE") {
+    return {
+      success: false,
+      error: room.status === "PAUSED" ? "Trading paused by instructor" : "Market is not active",
+    };
+  }
+
   const validation = validateTrade(player, asset, order.side, order.quantity);
   if (!validation.valid) {
     return { success: false, error: validation.error };
@@ -267,12 +284,9 @@ export function serverSubmitOrder(
 
   const updatedTrades = [order, ...room.recentTrades].slice(0, 30);
 
-  // If order is placed in round 1+, market is actively trading
-  const status = room.status === "PAUSED" ? "PAUSED" : "ACTIVE";
-
   const updatedRoom: RoomState = {
     ...room,
-    status,
+    status: "ACTIVE",
     assets: updatedAssets,
     players: rankedMap,
     recentTrades: updatedTrades,

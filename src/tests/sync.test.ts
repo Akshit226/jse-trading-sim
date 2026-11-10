@@ -86,6 +86,49 @@ describe("Room Synchronization and Multi-User Flow (Indian Stocks)", () => {
     assert.equal(updatedStudent.totalTrades, 1);
   });
 
+  it("should pause room and reject new trades with clear error message", async () => {
+    const pausedRoom = await updateRoomStatus(roomCode, "PAUSED");
+    assert.equal(pausedRoom.status, "PAUSED");
+
+    const order: TradeOrder = {
+      id: "ord-test-paused",
+      playerId: "std-1",
+      playerName: "Arjun Nambiar",
+      desk: "tech_analyst",
+      assetId: "MPHASIS",
+      side: "BUY",
+      quantity: 5,
+      price: 2850,
+      timestamp: Date.now(),
+      total: 14250,
+    };
+
+    const result = await submitOrder(roomCode, order);
+    assert.equal(result.success, false);
+    assert.equal(result.error, "Trading paused by instructor");
+  });
+
+  it("should resume room to ACTIVE and permit trading again", async () => {
+    const resumedRoom = await updateRoomStatus(roomCode, "ACTIVE");
+    assert.equal(resumedRoom.status, "ACTIVE");
+
+    const order: TradeOrder = {
+      id: "ord-test-resumed",
+      playerId: "std-1",
+      playerName: "Arjun Nambiar",
+      desk: "tech_analyst",
+      assetId: "MPHASIS",
+      side: "BUY",
+      quantity: 5,
+      price: 2850,
+      timestamp: Date.now(),
+      total: 14250,
+    };
+
+    const result = await submitOrder(roomCode, order);
+    assert.equal(result.success, true);
+  });
+
   it("should trigger breaking news and impact asset prices across the room", async () => {
     const news = PRESET_NEWS_SCENARIOS[0]; // Tata Elxsi +18%
     const updatedRoom = await triggerNewsEvent(roomCode, news);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   fetchRemoteRoom,
   getServerRoom,
+  patchRemoteRoomStatus,
   serverAdvanceRound,
   serverJoinPlayer,
   serverSpawnBots,
@@ -31,6 +32,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { action, code, data } = body;
     const upperCode = (code || "WALLST").toUpperCase();
+
+    // Check remote Firebase RTDB first so serverless containers always operate on latest room state
+    if (action !== "RESET") {
+      const remote = await fetchRemoteRoom(upperCode);
+      if (remote) {
+        setServerRoom(remote);
+      }
+    }
 
     if (action === "JOIN") {
       const playerPayload = data?.player || data;
@@ -63,6 +72,7 @@ export async function POST(req: NextRequest) {
       const room = getServerRoom(upperCode);
       const updated = { ...room, status: data.status };
       setServerRoom(updated);
+      patchRemoteRoomStatus(upperCode, data.status);
       return NextResponse.json({ success: true, room: updated });
     }
 

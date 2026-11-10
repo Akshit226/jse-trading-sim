@@ -292,25 +292,43 @@ export function subscribeToRoomMeta(
   onUpdate: (meta: RoomMeta) => void
 ): () => void {
   const upperCode = code.toUpperCase();
-  let unsubFirebase: (() => void) | null = null;
+  let unsubStatus: (() => void) | null = null;
+  let unsubRound: (() => void) | null = null;
 
   if (isFirebaseConfigured && database) {
     try {
       const statusRef = ref(database, `rooms/${upperCode}/status`);
       const roundRef = ref(database, `rooms/${upperCode}/currentRound`);
-      
-      unsubFirebase = onValue(statusRef, (snap) => {
+
+      const notify = () => {
+        const current = inMemoryRooms.get(upperCode);
+        onUpdate({
+          code: upperCode,
+          status: current?.status || "LOBBY",
+          currentRound: current?.currentRound || 1,
+          totalRounds: current?.totalRounds || TOTAL_ROUNDS,
+          roundTimeRemaining: current?.roundTimeRemaining || DEFAULT_ROUND_DURATION,
+          roundDurationSec: current?.roundDurationSec || DEFAULT_ROUND_DURATION,
+        });
+      };
+
+      unsubStatus = onValue(statusRef, (snap) => {
         if (snap.exists()) {
-          const current = inMemoryRooms.get(upperCode);
           const status = snap.val() as RoomState["status"];
-          onUpdate({
-            code: upperCode,
-            status,
-            currentRound: current?.currentRound || 1,
-            totalRounds: current?.totalRounds || TOTAL_ROUNDS,
-            roundTimeRemaining: current?.roundTimeRemaining || DEFAULT_ROUND_DURATION,
-            roundDurationSec: current?.roundDurationSec || DEFAULT_ROUND_DURATION,
-          });
+          const current = inMemoryRooms.get(upperCode) || createInitialRoom(upperCode);
+          current.status = status;
+          inMemoryRooms.set(upperCode, current);
+          notify();
+        }
+      });
+
+      unsubRound = onValue(roundRef, (snap) => {
+        if (snap.exists()) {
+          const round = Number(snap.val()) || 1;
+          const current = inMemoryRooms.get(upperCode) || createInitialRoom(upperCode);
+          current.currentRound = round;
+          inMemoryRooms.set(upperCode, current);
+          notify();
         }
       });
     } catch {}
@@ -335,7 +353,8 @@ export function subscribeToRoomMeta(
 
   return () => {
     inPageListeners.get(upperCode)?.delete(listener);
-    if (unsubFirebase) unsubFirebase();
+    if (unsubStatus) unsubStatus();
+    if (unsubRound) unsubRound();
   };
 }
 
@@ -651,6 +670,15 @@ export async function submitOrder(
       }
 
       const asset = existingRoom.assets[order.assetId];
+      if (!asset) return { success: false, error: "Asset not found" };
+
+      if (existingRoom.status !== "ACTIVE") {
+        return {
+          success: false,
+          error: existingRoom.status === "PAUSED" ? "Trading paused by instructor" : "Market is not active",
+        };
+      }
+
       const validation = validateTrade(player, asset, order.side, order.quantity);
       if (!validation.valid) {
         return { success: false, error: validation.error };
@@ -683,7 +711,7 @@ export async function submitOrder(
 
       const updatedRoom: RoomState = {
         ...existingRoom,
-        status: existingRoom.status === "PAUSED" ? "PAUSED" : "ACTIVE",
+        status: "ACTIVE",
         assets: updatedAssets,
         players: rankedMap,
         recentTrades: updatedTrades,
@@ -809,6 +837,9 @@ export async function updateRoomStatus(
   existing.status = status;
   inMemoryRooms.set(upperCode, existing);
 
+  // Broadcast immediate state locally right away (0ms UI latency)
+  await saveRoomState(existing);
+
   // Direct Firebase RTDB status update if connected
   if (typeof window !== "undefined" && isFirebaseConfigured && database) {
     try {
@@ -827,6 +858,21 @@ export async function updateRoomStatus(
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.room) {
+          // Guard: prevent cold serverless response from wiping local players/trades
+          if (
+            existing.players &&
+            Object.keys(existing.players).length > 0 &&
+            (!json.room.players || Object.keys(json.room.players).length === 0)
+          ) {
+            json.room.players = existing.players;
+          }
+          if (
+            existing.recentTrades &&
+            existing.recentTrades.length > 0 &&
+            (!json.room.recentTrades || json.room.recentTrades.length === 0)
+          ) {
+            json.room.recentTrades = existing.recentTrades;
+          }
           await saveRoomState(json.room);
           return json.room;
         }

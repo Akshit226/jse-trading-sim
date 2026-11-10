@@ -159,6 +159,8 @@ function HostDashboardContent() {
 
   const handleUpdateStatus = async (status: RoomState["status"]) => {
     if (!room) return;
+    // Optimistic immediate update for 0ms teacher UI feedback
+    setRoom((prev) => (prev ? { ...prev, status } : prev));
     const updated = await updateRoomStatus(room.code, status);
     setRoom(updated);
   };
