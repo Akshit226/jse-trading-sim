@@ -310,7 +310,7 @@ export const DESK_METADATA: Record<
     name: "Tech & Digital Innovators Desk",
     icon: "Cpu",
     badgeColor: "bg-blue-600/30 text-blue-400 border-blue-500/50",
-    description: "Specializes in TCS, Infosys, Zomato, and Tata Motors EV tech. Receives confidential deal pipeline whispers.",
+    description: "Specializes in TCS, Infosys, Zomato, and Tata Motors EV tech. Evaluates digital revenue pipelines and operating margins.",
   },
   fmcg_consumer: {
     name: "FMCG, Consumer & Auto Desk",

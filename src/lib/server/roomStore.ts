@@ -387,6 +387,57 @@ export function serverAdvanceRound(code: string): RoomState {
   return updatedRoom;
 }
 
+/**
+ * Sets the room to any specific round from 1 to totalRounds (e.g. 1-5)
+ * Carries over closing prices as the new round's opening prices and starts the round.
+ */
+export function serverSetRound(code: string, targetRound: number): RoomState {
+  const room = getServerRoom(code);
+  const round = Math.max(1, Math.min(room.totalRounds || 5, Math.floor(targetRound)));
+
+  // Carry over previous closing price as the new round's opening price
+  const updatedAssets = { ...room.assets };
+  for (const aid of Object.keys(updatedAssets) as AssetId[]) {
+    const asset = updatedAssets[aid];
+    const prevClose = asset.currentPrice;
+    updatedAssets[aid] = {
+      ...asset,
+      previousClosePrice: prevClose,
+      roundOpenPrice: prevClose,
+      basePrice: prevClose,
+      changePercent: 0,
+      historicalPrices: [
+        ...asset.historicalPrices,
+        { time: Date.now(), price: prevClose },
+      ].slice(-60),
+    };
+  }
+
+  const recalculatedPlayers: Record<string, PlayerPortfolio> = {};
+  for (const pid of Object.keys(room.players)) {
+    recalculatedPlayers[pid] = recalculatePortfolio(room.players[pid], updatedAssets);
+  }
+
+  const ranked = rankPlayers(recalculatedPlayers);
+  const rankedMap: Record<string, PlayerPortfolio> = {};
+  ranked.forEach((p) => {
+    rankedMap[p.id] = p;
+  });
+
+  const updatedRoom: RoomState = {
+    ...room,
+    currentRound: round,
+    status: "ACTIVE",
+    roundTimeRemaining: room.roundDurationSec,
+    currentNews: null,
+    assets: updatedAssets,
+    players: rankedMap,
+  };
+
+  setServerRoom(updatedRoom);
+  return updatedRoom;
+}
+
 export function serverSpawnBots(code: string, count: number = 30): RoomState {
   const room = getServerRoom(code);
 

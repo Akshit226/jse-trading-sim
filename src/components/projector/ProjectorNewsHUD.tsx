@@ -330,15 +330,25 @@ export const ProjectorNewsHUD: React.FC<ProjectorNewsHUDProps> = ({
               </div>
             )}
 
-            {/* Confidential Desk Intelligence Leak */}
-            {activeNews.deskWhisper && (
-              <div className="p-3.5 rounded-ui bg-accent-subtle/30 border-l-4 border-accent text-xs font-mono space-y-1">
+            {/* Student Market Prediction Mission Prompt */}
+            {activeNews.predictionPrompt ? (
+              <div className="p-3.5 rounded-ui bg-accent/15 border-l-4 border-accent text-xs font-mono space-y-1">
                 <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-accent text-[11px]">
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>Confidential Intelligence Leak ({activeNews.deskWhisper.desk.toUpperCase()})</span>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Trader Mission • Predict Market Reaction</span>
                 </div>
-                <p className="text-neutral-200 text-xs sm:text-sm leading-relaxed font-sans">
-                  {activeNews.deskWhisper.rumorText}
+                <p className="text-white text-xs sm:text-sm font-semibold leading-relaxed font-sans">
+                  {activeNews.predictionPrompt}
+                </p>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-ui bg-accent/15 border-l-4 border-accent text-xs font-mono space-y-1">
+                <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-accent text-[11px]">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Trader Mission • Predict Market Reaction</span>
+                </div>
+                <p className="text-white text-xs sm:text-sm font-semibold leading-relaxed font-sans">
+                  Analyze the financial metrics above for {activeNews.affectedAsset}. Will buying or selling dominate? Place your orders!
                 </p>
               </div>
             )}

@@ -70,10 +70,7 @@ export interface NewsEvent {
   sentiment: NewsSentiment;
   priceImpact: number; // percentage shift e.g. +0.20 (+20%) or -0.30 (-30%)
   soundCue: "breaking_news" | "crash_alert" | "bullish_alert" | "fed_bell";
-  deskWhisper?: {
-    desk: StudentDesk;
-    rumorText: string;
-  };
+  predictionPrompt?: string; // Student guidance: Analyze & predict price direction
   voiceNarration?: {
     pitch?: number;
     rate?: number;

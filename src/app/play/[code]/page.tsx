@@ -56,6 +56,7 @@ import {
   BookOpen,
   BarChart3,
   Newspaper,
+  Sparkles,
 } from "lucide-react";
 
 function PlayRoomContent() {
@@ -270,6 +271,23 @@ function PlayRoomContent() {
       {/* Non-blocking News Catalyst */}
       <BreakingNewsBanner news={room.currentNews} />
 
+      {/* Market Inactive / Waiting for Faculty Banner */}
+      {!isMarketActive && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-ui px-3.5 py-2.5 text-xs flex items-center justify-between text-amber-300 font-mono">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              {room.status === "LOBBY"
+                ? `Waiting for faculty to start Round ${room.currentRound}...`
+                : `Round ${room.currentRound} paused by instructor.`}
+            </span>
+          </div>
+          <span className="text-[10px] uppercase font-bold text-neutralMuted px-2 py-0.5 rounded bg-surface border border-borderSubtle">
+            Student Terminal
+          </span>
+        </div>
+      )}
+
       {/* TAB 1: MARKETS LIST */}
       {mobileTab === "market" && (
         <div className="space-y-2 motion-view-enter">
@@ -473,6 +491,14 @@ function PlayRoomContent() {
                       </div>
                     </div>
                   )}
+
+                  {/* Student Prediction Mission */}
+                  {n.predictionPrompt && (
+                    <div className="p-2 bg-accent/10 rounded-ui border border-accent/20 flex items-start gap-1.5 text-xs text-accent">
+                      <Sparkles className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                      <span className="font-semibold text-white">{n.predictionPrompt}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -641,6 +667,23 @@ function PlayRoomContent() {
       {/* COLUMN 2 (Center: 4 cols) - Chart & Consolidated Order Ticket       */}
       {/* ------------------------------------------------------------------- */}
       <div className="col-span-4 space-y-4">
+        {/* Market Inactive / Waiting for Faculty Banner */}
+        {!isMarketActive && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-ui px-3.5 py-2.5 text-xs flex items-center justify-between text-amber-300 font-mono">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>
+                {room.status === "LOBBY"
+                  ? `Waiting for faculty to start Round ${room.currentRound}...`
+                  : `Round ${room.currentRound} paused by instructor.`}
+              </span>
+            </div>
+            <span className="text-[10px] uppercase font-bold text-neutralMuted px-2 py-0.5 rounded bg-surface border border-borderSubtle">
+              Student Terminal
+            </span>
+          </div>
+        )}
+
         {/* Non-blocking News Catalyst */}
         <BreakingNewsBanner news={room.currentNews} />
 

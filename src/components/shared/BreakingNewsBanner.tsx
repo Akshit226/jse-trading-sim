@@ -186,13 +186,13 @@ export const BreakingNewsBanner: React.FC<BreakingNewsBannerProps> = ({ news, on
                       : `${getCompanyFullName(news.affectedAsset)} (${news.affectedAsset}) • ${getCompanyIndustry(news.affectedAsset)}`)}
                 </span>
               </div>
-              <div className="flex items-center justify-between border-t border-borderSubtle pt-1.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-borderSubtle pt-1.5 gap-1">
                 <span className="text-neutralMuted flex items-center gap-1">
                   <HelpCircle className="w-3 h-3 text-accent" />
-                  <span>Floor Trading Task:</span>
+                  <span>Student Prediction Task:</span>
                 </span>
-                <span className="font-bold text-accent">
-                  Analyze financial health & submit order
+                <span className="font-bold text-accent text-xs">
+                  {news.predictionPrompt || "Analyze financial catalyst & predict price direction"}
                 </span>
               </div>
             </div>

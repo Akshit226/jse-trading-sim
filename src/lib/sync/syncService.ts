@@ -798,6 +798,44 @@ export async function advanceRound(roomCode: string): Promise<RoomState> {
 }
 
 /**
+ * Sets the room directly to any chosen round (1 to 5)
+ */
+export async function setRound(roomCode: string, targetRound: number): Promise<RoomState> {
+  const upperCode = roomCode.toUpperCase();
+  const safeRound = Math.max(1, Math.min(5, Math.floor(targetRound)));
+
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/room", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "SET_ROUND", code: upperCode, data: { round: safeRound } }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.room) {
+          await saveRoomState(json.room);
+          return json.room;
+        }
+      }
+    } catch {}
+  } else {
+    try {
+      const { serverSetRound } = await import("../server/roomStore");
+      return serverSetRound(upperCode, safeRound);
+    } catch {}
+  }
+
+  const existing = inMemoryRooms.get(upperCode) || createInitialRoom(upperCode);
+  existing.currentRound = safeRound;
+  existing.status = "ACTIVE";
+  existing.roundTimeRemaining = existing.roundDurationSec;
+  inMemoryRooms.set(upperCode, existing);
+  await saveRoomState(existing);
+  return existing;
+}
+
+/**
  * Spawns 30 realistic AI student classmates
  */
 export async function spawnBots(roomCode: string, count: number = 30): Promise<RoomState> {

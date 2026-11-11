@@ -7,6 +7,7 @@ import {
   triggerNewsEvent,
   spawnBots,
   advanceRound,
+  setRound,
   updateRoomStatus,
   resetRoomState,
 } from "../lib/sync/syncService";
@@ -148,5 +149,15 @@ describe("Room Synchronization and Multi-User Flow (Indian Stocks)", () => {
     assert.equal(relianceAsset.roundOpenPrice, relianceAsset.currentPrice);
     assert.equal(relianceAsset.previousClosePrice, relianceAsset.currentPrice);
     assert.equal(relianceAsset.changePercent, 0);
+  });
+
+  it("should allow jumping directly to any chosen round 1-5 via setRound", async () => {
+    const round4 = await setRound(roomCode, 4);
+    assert.equal(round4.currentRound, 4);
+    assert.equal(round4.status, "ACTIVE");
+
+    const round2 = await setRound(roomCode, 2);
+    assert.equal(round2.currentRound, 2);
+    assert.equal(round2.status, "ACTIVE");
   });
 });

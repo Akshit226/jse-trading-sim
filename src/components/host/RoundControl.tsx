@@ -9,6 +9,7 @@ import {
   SkipForward,
   RotateCcw,
   Layers,
+  ChevronDown,
 } from "lucide-react";
 
 interface RoundControlProps {
@@ -16,6 +17,7 @@ interface RoundControlProps {
   onUpdateStatus: (status: RoomState["status"]) => Promise<void>;
   onAdvanceRound: () => Promise<void>;
   onResetRoom: () => Promise<void>;
+  onSetRound?: (round: number) => Promise<void>;
 }
 
 export const RoundControl: React.FC<RoundControlProps> = ({
@@ -23,6 +25,7 @@ export const RoundControl: React.FC<RoundControlProps> = ({
   onUpdateStatus,
   onAdvanceRound,
   onResetRoom,
+  onSetRound,
 }) => {
   const [isUpdating, setIsUpdating] = React.useState(false);
 
@@ -54,6 +57,19 @@ export const RoundControl: React.FC<RoundControlProps> = ({
     sounds.playBell();
     try {
       await onAdvanceRound();
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleSelectRound = async (targetRound: number) => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    sounds.playBell();
+    try {
+      if (onSetRound) {
+        await onSetRound(targetRound);
+      }
     } finally {
       setIsUpdating(false);
     }
@@ -105,8 +121,31 @@ export const RoundControl: React.FC<RoundControlProps> = ({
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Action Controls & Round Selector */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Round Selector Dropdown */}
+          <div className="flex items-center gap-1.5 bg-surface-subtle px-2.5 py-1.5 rounded-ui border border-borderSubtle">
+            <label htmlFor="host-round-select" className="text-[11px] font-mono font-bold text-neutralMuted uppercase">
+              Round:
+            </label>
+            <div className="relative">
+              <select
+                id="host-round-select"
+                value={room.currentRound}
+                onChange={(e) => handleSelectRound(Number(e.target.value))}
+                disabled={isUpdating}
+                className="bg-surface hover:bg-surface-elevated border border-accent/40 text-accent font-mono text-xs font-bold rounded-md pl-2.5 pr-7 py-1 cursor-pointer focus:outline-none focus:border-accent transition-colors appearance-none"
+              >
+                {[1, 2, 3, 4, 5].map((r) => (
+                  <option key={r} value={r} className="bg-surface text-white">
+                    Round {r} {r === room.currentRound ? "(Active)" : ""}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-accent absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
           {isMarketOpen ? (
             <button
               type="button"

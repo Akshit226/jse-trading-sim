@@ -4,6 +4,7 @@ import {
   getServerRoom,
   patchRemoteRoomStatus,
   serverAdvanceRound,
+  serverSetRound,
   serverJoinPlayer,
   serverSpawnBots,
   serverSubmitOrder,
@@ -60,6 +61,12 @@ export async function POST(req: NextRequest) {
 
     if (action === "ADVANCE_ROUND") {
       const room = serverAdvanceRound(upperCode);
+      return NextResponse.json({ success: true, room });
+    }
+
+    if (action === "SET_ROUND") {
+      const targetRound = Number(data?.round ?? 1);
+      const room = serverSetRound(upperCode, targetRound);
       return NextResponse.json({ success: true, room });
     }
 

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { NewsEvent, RoomState, StudentDesk, AssetId, PlayerPortfolio } from "@/types/trading";
 import {
   advanceRound,
+  setRound,
   createInitialRoom,
   getRoomState,
   resetRoomState,
@@ -169,6 +170,12 @@ function HostDashboardContent() {
   const handleAdvanceRound = async () => {
     if (!room) return;
     const updated = await advanceRound(room.code);
+    setRoom(updated);
+  };
+
+  const handleSetRound = async (targetRound: number) => {
+    if (!room) return;
+    const updated = await setRound(room.code, targetRound);
     setRoom(updated);
   };
 
@@ -492,6 +499,7 @@ function HostDashboardContent() {
               onUpdateStatus={handleUpdateStatus}
               onAdvanceRound={handleAdvanceRound}
               onResetRoom={handleResetRoom}
+              onSetRound={handleSetRound}
             />
 
             {/* News Catalyst Dispatcher & Leaderboard Row */}
